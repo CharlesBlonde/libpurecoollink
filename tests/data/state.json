@@ -1,0 +1,25 @@
+{
+  "msg": "CURRENT-STATE",
+  "time": "2017-02-26T16:25:35.000Z",
+  "mode-reason": "LAPP",
+  "state-reason": "ENV",
+  "dial": "OFF",
+  "rssi": "-55",
+  "product-state": {
+    "fmod": "AUTO",
+    "fnst": "FAN",
+    "fnsp": "AUTO",
+    "qtar": "0004",
+    "oson": "OFF",
+    "rhtm": "ON",
+    "filf": "2087",
+    "ercd": "02C0",
+    "nmod": "ON",
+    "wacd": "NONE"
+  },
+  "scheduler": {
+    "srsc": "cbd0",
+    "dstv": "0001",
+    "tzid": "0001"
+  }
+}

@@ -1,0 +1,6 @@
+enum-compat
+netifaces
+six
+requests
+paho_mqtt
+pycrypto

@@ -1,0 +1,8 @@
+*.iml
+runtime/*
+.coverage
+.tox/
+.cache/
+libpurecoollink.egg-info/
+libpurecoollink/__pycache__/
+tests/__pycache__/
