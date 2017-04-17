@@ -3,4 +3,4 @@ netifaces
 six
 requests
 paho_mqtt
-pycrypto
+pycryptodome

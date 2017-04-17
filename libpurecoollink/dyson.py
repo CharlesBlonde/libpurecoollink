@@ -206,12 +206,10 @@ class DysonPureCoolLink:
 
         :param encrypted_password: Encrypted password
         """
-        key_bytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-                     18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-                     32]
-        key = bytearray(key_bytes).decode("utf-8")
-        init_vector = bytearray(
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).decode("utf-8")
+        key = b'\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10' \
+              b'\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f '
+        init_vector = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' \
+                      b'\x00\x00\x00\x00'
         cipher = AES.new(key, AES.MODE_CBC, init_vector)
         json_password = json.loads(unpad(
             cipher.decrypt(base64.b64decode(encrypted_password)).decode(

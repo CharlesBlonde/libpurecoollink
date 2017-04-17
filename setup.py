@@ -9,7 +9,7 @@ REQUIRES = [
     'netifaces',
     'six',
     'paho_mqtt',
-    'pycrypto'
+    'pycryptodome'
 ]
 
 PROJECT_CLASSIFIERS = [
@@ -22,7 +22,7 @@ PROJECT_CLASSIFIERS = [
 
 setup(
     name="libpurecoollink",
-    version="0.1.0",
+    version="0.1.1",
     license="Apache License 2.0",
     url="https://github.com/CharlesBlonde/libpurecoollink",
     download_url="https://github.com/CharlesBlonde/libpurecoollink",
