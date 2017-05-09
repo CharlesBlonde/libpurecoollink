@@ -164,7 +164,7 @@ class DysonPureCoolLink:
         self._network_device = None
         self._search_device_queue = Queue()
         self._mqtt = None
-        self._callback_message = None
+        self._callback_message = []
         self._connected = False
         self._current_state = None
 
@@ -198,7 +198,8 @@ class DysonPureCoolLink:
         if DysonState.is_state_message(payload):
             device_msg = DysonState(payload)
             userdata.state = device_msg
-            userdata.callback_message(device_msg)
+            for function in userdata.callback_message:
+                function(device_msg)
 
     @staticmethod
     def _decrypt_password(encrypted_password):
@@ -216,7 +217,7 @@ class DysonPureCoolLink:
                 'utf-8')))
         return json_password["apPasswordHash"]
 
-    def connect(self, on_message, timeout=5, retry=15):
+    def connect(self, on_message=None, timeout=5, retry=15):
         """Try to connect to device.
 
         :param on_message: On Message callback function
@@ -231,7 +232,8 @@ class DysonPureCoolLink:
             try:
                 self._network_device = self._search_device_queue.get(
                     timeout=timeout)
-                self._callback_message = on_message
+                if on_message:
+                    self._callback_message.append(on_message)
                 self._mqtt = mqtt.Client(userdata=self)
                 self._mqtt.on_message = self.on_message
                 self._mqtt.on_connect = self.on_connect
@@ -372,13 +374,21 @@ class DysonPureCoolLink:
 
     @property
     def callback_message(self):
-        """Callback function when message are received."""
+        """Callback functions when message are received."""
         return self._callback_message
 
-    @callback_message.setter
-    def callback_message(self, value):
-        """Set callback message function."""
-        self._callback_message = value
+    def add_message_listener(self, callback_message):
+        """Add message listener."""
+        self._callback_message.append(callback_message)
+
+    def remove_message_listener(self, callback_message):
+        """Remove a message listener."""
+        if callback_message in self._callback_message:
+            self.callback_message.remove(callback_message)
+
+    def clear_message_listener(self):
+        """Clear all message listener."""
+        self.callback_message.clear()
 
     def __repr__(self):
         """String representation."""

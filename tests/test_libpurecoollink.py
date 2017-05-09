@@ -210,8 +210,55 @@ class TestLibPureCoolLink(unittest.TestCase):
     def test_on_connect_failed(self):
         DysonPureCoolLink.on_connect(None, None, None, 1)
 
+    def test_add_message_listener(self):
+        def on_message():
+            pass
+
+        def on_message_2():
+            pass
+
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/70ZGysII1K"
+                                "e1i0ZHakFH84DZuxsSQ4KTT2vbCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        device.add_message_listener(on_message)
+        assert len(device.callback_message) == 1
+        device.remove_message_listener(on_message)
+        assert len(device.callback_message) == 0
+        device.add_message_listener(on_message_2)
+        device.add_message_listener(on_message)
+        assert len(device.callback_message) == 2
+        device.clear_message_listener()
+        assert len(device.callback_message) == 0
+
     def test_on_message(self):
+        def on_message(msg):
+            pass
+
         userdata = Mock()
+        userdata.callback_message = [on_message]
+        msg = Mock()
+        payload = b'{"msg":"CURRENT-STATE","time":' \
+                  b'"2017-02-19T15:00:18.000Z","mode-reason":"LAPP",' \
+                  b'"state-reason":"MODE","dial":"OFF","rssi":"-58",' \
+                  b'"product-state":{"fmod":"AUTO","fnst":"FAN",' \
+                  b'"fnsp":"AUTO","qtar":"0004","oson":"OFF","rhtm":"ON",' \
+                  b'"filf":"2159","ercd":"02C0","nmod":"ON","wacd":"NONE"},' \
+                  b'"scheduler":{"srsc":"cbd0","dstv":"0001","tzid":"0001"}}'
+        msg.payload = payload
+        DysonPureCoolLink.on_message(None, userdata, msg)
+
+    def test_on_message_without_callback(self):
+        userdata = Mock()
+        userdata.callback_message = []
         msg = Mock()
         payload = b'{"msg":"CURRENT-STATE","time":' \
                   b'"2017-02-19T15:00:18.000Z","mode-reason":"LAPP",' \
