@@ -196,7 +196,7 @@ class DysonPureCoolLink:
             client.subscribe(
                 "{0}/{1}/status/current".format(userdata.product_type,
                                                 userdata.serial))
-            userdata.connection_callback(False)
+            userdata.connection_callback(True)
         else:
             _LOGGER.error("Connection error: %s",
                           MQTT_RETURN_CODES[return_code])

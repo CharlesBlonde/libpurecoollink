@@ -7,3 +7,4 @@ libpurecoollink.egg-info/
 libpurecoollink/__pycache__/
 tests/__pycache__/
 dist/*
+build/
