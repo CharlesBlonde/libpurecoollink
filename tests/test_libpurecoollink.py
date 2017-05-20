@@ -95,18 +95,19 @@ def _mocked_request_state(*args, **kwargs):
 def _mocked_send_command(*args, **kwargs):
     assert args[0] == '475/device-id-1/command'
     payload = json.loads(args[1])
-    assert payload['time']
-    assert payload['data']['fmod'] == "FAN"
-    assert payload['data']['nmod'] == "OFF"
-    assert payload['data']['oson'] == "ON"
-    assert payload['data']['rstf'] == "STET"
-    assert payload['data']['qtar'] == "0004"
-    assert payload['data']['fnsp'] == "0003"
-    assert payload['data']['sltm'] == "STET"
-    assert payload['data']['rhtm'] == "ON"
-    assert payload['mode-reason'] == "LAPP"
-    assert payload['msg'] == "STATE-SET"
-    assert args[2] == 1
+    if payload['msg'] == "STATE-SET":
+        assert payload['time']
+        assert payload['data']['fmod'] == "FAN"
+        assert payload['data']['nmod'] == "OFF"
+        assert payload['data']['oson'] == "ON"
+        assert payload['data']['rstf'] == "STET"
+        assert payload['data']['qtar'] == "0004"
+        assert payload['data']['fnsp'] == "0003"
+        assert payload['data']['sltm'] == "STET"
+        assert payload['data']['rhtm'] == "ON"
+        assert payload['mode-reason'] == "LAPP"
+        assert payload['msg'] == "STATE-SET"
+        assert args[2] == 1
 
 
 def on_add_device(network_device):
@@ -162,6 +163,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         devices = dyson_account.devices()
         self.assertEqual(mocked_list_devices.call_count, 1)
         network_device = NetworkDevice('device-1', 'host', 1111)
+        devices[0].connection_callback(True)
         devices[0]._add_network_device(network_device)
         connected = devices[0].connect(None)
         self.assertTrue(connected)
@@ -208,7 +210,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         client.subscribe.assert_called_with("ptype/serial/status/current")
 
     def test_on_connect_failed(self):
-        DysonPureCoolLink.on_connect(None, None, None, 1)
+        DysonPureCoolLink.on_connect(None, Mock(), None, 1)
 
     def test_add_message_listener(self):
         def on_message():
@@ -287,12 +289,13 @@ class TestLibPureCoolLink(unittest.TestCase):
             "ProductType": "475"
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
+        device.connection_callback(True)
         device._add_network_device(network_device)
         connected = device.connect(None)
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.request_current_state()
-        self.assertEqual(mocked_publish.call_count, 1)
+        self.assertEqual(mocked_publish.call_count, 2)
 
     @mock.patch('paho.mqtt.client.Client.publish',
                 side_effect=_mocked_send_command)
@@ -314,6 +317,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device._add_network_device(network_device)
         device._current_state = DysonState(open("tests/data/state.json", "r").
                                            read())
+        device.connection_callback(True)
         connected = device.connect(None)
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
@@ -321,7 +325,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                                  oscillation=Oscillation.OSCILLATION_ON,
                                  fan_speed=FanSpeed.FAN_SPEED_3,
                                  night_mode=NightMode.NIGHT_MODE_OFF)
-        self.assertEqual(mocked_publish.call_count, 1)
+        self.assertEqual(mocked_publish.call_count, 2)
         self.assertEqual(device.__repr__(),
                          "DysonDevice(device-id-1,True,device-1,21.03.08,True"
                          ",False,475,NetworkDevice(device-1,host,1111))")

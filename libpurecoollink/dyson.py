@@ -16,12 +16,23 @@ from Crypto.Cipher import AES
 
 from .zeroconf import ServiceBrowser, Zeroconf
 
+DEFAULT_PORT = 1883
+
 _LOGGER = logging.getLogger(__name__)
 
 DYSON_API_URL = "api.cp.dyson.com"
 
 DYSON_PURE_COOL_LINK_TOUR = "475"
 DYSON_PURE_COOL_LINK_DESK = "469"
+
+MQTT_RETURN_CODES = {
+    0: "Connection successful",
+    1: "Connection refused - incorrect protocol version",
+    2: "Connection refused - invalid client identifier",
+    3: "Connection refused - server unavailable",
+    4: "Connection refused - bad username or password",
+    5: "Connection refused - not authorised"
+}
 
 
 def unpad(string):
@@ -71,7 +82,7 @@ class DysonAccount:
 
     @property
     def logged(self):
-        """True if user is logged, else False."""
+        """Return True if user is logged, else False."""
         return self._logged
 
 
@@ -105,7 +116,7 @@ class NetworkDevice:
         return self._port
 
     def __repr__(self):
-        """String representation."""
+        """Return a String representation."""
         fields = [self.name, self.address, str(self.port)]
         return 'NetworkDevice(' + ",".join(fields) + ')'
 
@@ -163,6 +174,7 @@ class DysonPureCoolLink:
         self._product_type = json_body['ProductType']
         self._network_device = None
         self._search_device_queue = Queue()
+        self._connection_queue = Queue()
         self._mqtt = None
         self._callback_message = []
         self._connected = False
@@ -178,22 +190,22 @@ class DysonPureCoolLink:
     @staticmethod
     def on_connect(client, userdata, flags, return_code):
         # pylint: disable=unused-argument
-        """Callback when connected."""
+        """Set function callback when connected."""
         if return_code == 0:
             _LOGGER.debug("Connected with result code: %s", return_code)
             client.subscribe(
                 "{0}/{1}/status/current".format(userdata.product_type,
                                                 userdata.serial))
-            # force refresh state
-            userdata.connected = True
-            userdata.request_current_state()
+            userdata.connection_callback(False)
         else:
-            _LOGGER.error("Connection error: %s", return_code)
+            _LOGGER.error("Connection error: %s",
+                          MQTT_RETURN_CODES[return_code])
+            userdata.connection_callback(False)
 
     @staticmethod
     def on_message(client, userdata, msg):
         # pylint: disable=unused-argument
-        """Callback when message received."""
+        """Set function Callback when message received."""
         payload = msg.payload.decode("utf-8")
         if DysonState.is_state_message(payload):
             device_msg = DysonState(payload)
@@ -217,48 +229,70 @@ class DysonPureCoolLink:
                 'utf-8')))
         return json_password["apPasswordHash"]
 
-    def connect(self, on_message=None, timeout=5, retry=15):
+    def connect(self, on_message=None, device_ip=None, timeout=5, retry=15):
         """Try to connect to device.
 
+        If device_ip is provided, mDNS discovery step will be skipped.
+
         :param on_message: On Message callback function
+        :param device_ip: Device IP address
         :param timeout: Timeout
         :param retry: Max retry
         """
-        for i in range(retry):
-            zeroconf = Zeroconf()
-            listener = self.DysonDeviceListener(self._serial,
-                                                self._add_network_device)
-            ServiceBrowser(zeroconf, "_dyson_mqtt._tcp.local.", listener)
-            try:
-                self._network_device = self._search_device_queue.get(
-                    timeout=timeout)
-                if on_message:
-                    self._callback_message.append(on_message)
-                self._mqtt = mqtt.Client(userdata=self)
-                self._mqtt.on_message = self.on_message
-                self._mqtt.on_connect = self.on_connect
-                self._mqtt.username_pw_set(self._serial, self._credentials)
-                self._mqtt.connect(self._network_device.address,
-                                   self._network_device.port)
-                self._mqtt.loop_start()
-                return True
-            except Empty:
-                # Unable to find device
-                _LOGGER.error("Unable to find device %s, try %s", self._serial,
-                              i)
-                zeroconf.close()
+        if device_ip is None:
+            for i in range(retry):
+                zeroconf = Zeroconf()
+                listener = self.DysonDeviceListener(self._serial,
+                                                    self._add_network_device)
+                ServiceBrowser(zeroconf, "_dyson_mqtt._tcp.local.", listener)
+                try:
+                    self._network_device = self._search_device_queue.get(
+                        timeout=timeout)
+                except Empty:
+                    # Unable to find device
+                    _LOGGER.warning("Unable to find device %s, try %s",
+                                    self._serial, i)
+                    zeroconf.close()
+                else:
+                    break
+            if self._network_device is None:
+                _LOGGER.error("Unable to connect to device %s", self._serial)
+                return False
+        else:
+            self._network_device = NetworkDevice(self._name, device_ip,
+                                                 DEFAULT_PORT)
 
-        return False
+        if on_message:
+            self._callback_message.append(on_message)
+        self._mqtt = mqtt.Client(userdata=self)
+        self._mqtt.on_message = self.on_message
+        self._mqtt.on_connect = self.on_connect
+        self._mqtt.username_pw_set(self._serial, self._credentials)
+        self._mqtt.connect(self._network_device.address,
+                           self._network_device.port)
+        self._mqtt.loop_start()
+        self._connected = self._connection_queue.get(timeout=10)
+        if self._connected:
+            self.request_current_state()
+        else:
+            self._mqtt.loop_stop()
+
+        return self._connected
 
     def request_current_state(self):
         """Request new state message."""
-        payload = {
-            "msg": "REQUEST-CURRENT-STATE",
-            "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
-        self._mqtt.publish(
-            self._product_type + "/" + self._serial + "/command",
-            json.dumps(payload))
+        if self._connected:
+            payload = {
+                "msg": "REQUEST-CURRENT-STATE",
+                "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            }
+            self._mqtt.publish(
+                self._product_type + "/" + self._serial + "/command",
+                json.dumps(payload))
+        else:
+            _LOGGER.warning(
+                "Unable to send commands because device %s is not connected",
+                self.serial)
 
     def set_fan_configuration(self, fan_mode, oscillation, fan_speed,
                               night_mode):
@@ -269,30 +303,37 @@ class DysonPureCoolLink:
         :param fan_speed: Fan Speed (const.FanSpeed)
         :param night_mode: Night Mode (const.NightMode)
         """
-        f_mode = fan_mode.value if fan_mode else self._current_state.fan_mode
-        f_speed = fan_speed.value if fan_speed else self._current_state.speed
-        f_oscillation = oscillation.value if oscillation \
-            else self._current_state.oscillation
-        f_night_mode = night_mode.value if night_mode \
-            else self._current_state.night_mode
-        payload = {
-            "msg": "STATE-SET",
-            "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "mode-reason": "LAPP",
-            "data": {
-                "fmod": f_mode,
-                "fnsp": f_speed,
-                "oson": f_oscillation,
-                "sltm": "STET",  # ??
-                "rhtm": self._current_state.rhtm,  # ??
-                "rstf": "STET",  # ??,
-                "qtar": self._current_state.qtar,  # ??
-                "nmod": f_night_mode
+        if self._connected:
+            f_mode = fan_mode.value if fan_mode \
+                else self._current_state.fan_mode
+            f_speed = fan_speed.value if fan_speed \
+                else self._current_state.speed
+            f_oscillation = oscillation.value if oscillation \
+                else self._current_state.oscillation
+            f_night_mode = night_mode.value if night_mode \
+                else self._current_state.night_mode
+            payload = {
+                "msg": "STATE-SET",
+                "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "mode-reason": "LAPP",
+                "data": {
+                    "fmod": f_mode,
+                    "fnsp": f_speed,
+                    "oson": f_oscillation,
+                    "sltm": "STET",  # ??
+                    "rhtm": self._current_state.rhtm,  # ??
+                    "rstf": "STET",  # ??,
+                    "qtar": self._current_state.qtar,  # ??
+                    "nmod": f_night_mode
+                }
             }
-        }
-        self._mqtt.publish(
-            self._product_type + "/" + self._serial + "/command",
-            json.dumps(payload), 1)
+            self._mqtt.publish(
+                self._product_type + "/" + self._serial + "/command",
+                json.dumps(payload), 1)
+        else:
+            _LOGGER.warning(
+                "Unable to send commands because device %s is not connected",
+                self.serial)
 
     def set_configuration(self, **kwargs):
         """Configure fan.
@@ -339,7 +380,7 @@ class DysonPureCoolLink:
 
     @property
     def new_version_available(self):
-        """New version available."""
+        """Return if new version available."""
         return self._new_version_available
 
     @property
@@ -374,7 +415,7 @@ class DysonPureCoolLink:
 
     @property
     def callback_message(self):
-        """Callback functions when message are received."""
+        """Return callback functions when message are received."""
         return self._callback_message
 
     def add_message_listener(self, callback_message):
@@ -390,8 +431,12 @@ class DysonPureCoolLink:
         """Clear all message listener."""
         self.callback_message.clear()
 
+    def connection_callback(self, connected):
+        """Set function called when device is connected."""
+        self._connection_queue.put_nowait(connected)
+
     def __repr__(self):
-        """String representation."""
+        """Return a String representation."""
         fields = [self.serial, str(self.active), self.name, self.version,
                   str(self.auto_update), str(self.new_version_available),
                   self.product_type, str(self.network_device)]
@@ -470,7 +515,7 @@ class DysonState:
         return self._rhtm
 
     def __repr__(self):
-        """String representation."""
+        """Return a String representation."""
         fields = [self.fan_mode, self.fan_state, self.night_mode, self.speed,
                   self.oscillation, self.filter_life, self.qtar, self.rhtm]
         return 'DysonState(' + ",".join(fields) + ')'
