@@ -239,7 +239,7 @@ class TestLibPureCoolLink(unittest.TestCase):
     def test_connect_device_fail(self, mocked_login, mocked_list_devices,
                                  mocked_connect, mocked_close_zeroconf):
         dyson_account = DysonAccount("email", "password", "language")
-        logged = dyson_account.login()
+        dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
         self.assertTrue(dyson_account.logged)
         devices = dyson_account.devices()
