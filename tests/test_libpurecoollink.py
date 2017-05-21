@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import json
 
 from libpurecoollink.dyson import DysonAccount, NetworkDevice, \
-    DysonPureCoolLink, DysonState
+    DysonPureCoolLink, DysonState, DysonNotLoggedException
 from libpurecoollink.const import FanMode, NightMode, FanSpeed, Oscillation, \
     FanState
 
@@ -124,19 +124,26 @@ class TestLibPureCoolLink(unittest.TestCase):
     @mock.patch('requests.post', side_effect=_mocked_login_post)
     def test_connect_account(self, mocked_login):
         dyson_account = DysonAccount("email", "password", "language")
+        logged = dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(dyson_account.logged)
+        self.assertTrue(logged)
 
     @mock.patch('requests.post', side_effect=_mocked_login_post_failed)
     def test_connect_account_failed(self, mocked_login):
         dyson_account = DysonAccount("email", "password", "language")
+        logged = dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
-        self.assertFalse(dyson_account.logged)
+        self.assertFalse(logged)
+
+    def test_not_logged(self):
+        dyson_account = DysonAccount("email", "password", "language")
+        self.assertRaises(DysonNotLoggedException, dyson_account.devices)
 
     @mock.patch('requests.get', side_effect=_mocked_list_devices)
     @mock.patch('requests.post', side_effect=_mocked_login_post)
     def test_list_devices(self, mocked_login, mocked_list_devices):
         dyson_account = DysonAccount("email", "password", "language")
+        dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
         self.assertTrue(dyson_account.logged)
         devices = dyson_account.devices()
@@ -158,8 +165,9 @@ class TestLibPureCoolLink(unittest.TestCase):
     def test_connect_device(self, mocked_login, mocked_list_devices,
                             mocked_connect, mocked_loop):
         dyson_account = DysonAccount("email", "password", "language")
+        logged = dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(dyson_account.logged)
+        self.assertTrue(logged)
         devices = dyson_account.devices()
         self.assertEqual(mocked_list_devices.call_count, 1)
         network_device = NetworkDevice('device-1', 'host', 1111)
@@ -180,8 +188,9 @@ class TestLibPureCoolLink(unittest.TestCase):
                                         mocked_list_devices, mocked_connect,
                                         mocked_loop):
         dyson_account = DysonAccount("email", "password", "language")
+        logged = dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(dyson_account.logged)
+        self.assertTrue(logged)
         devices = dyson_account.devices()
         self.assertEqual(mocked_list_devices.call_count, 1)
 
@@ -206,6 +215,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                                                mocked_loop_start,
                                                mocked_loop_stop):
         dyson_account = DysonAccount("email", "password", "language")
+        dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
         self.assertTrue(dyson_account.logged)
         devices = dyson_account.devices()
@@ -229,6 +239,7 @@ class TestLibPureCoolLink(unittest.TestCase):
     def test_connect_device_fail(self, mocked_login, mocked_list_devices,
                                  mocked_connect, mocked_close_zeroconf):
         dyson_account = DysonAccount("email", "password", "language")
+        logged = dyson_account.login()
         self.assertEqual(mocked_login.call_count, 1)
         self.assertTrue(dyson_account.logged)
         devices = dyson_account.devices()

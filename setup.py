@@ -22,7 +22,7 @@ PROJECT_CLASSIFIERS = [
 
 setup(
     name="libpurecoollink",
-    version="0.1.4",
+    version="0.1.5",
     license="Apache License 2.0",
     url="https://github.com/CharlesBlonde/libpurecoollink",
     download_url="https://github.com/CharlesBlonde/libpurecoollink",

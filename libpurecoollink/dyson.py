@@ -1,6 +1,7 @@
 """Dyson Pure Cool Link library."""
 
 # pylint: disable=too-many-public-methods,too-many-instance-attributes
+# pylint: disable=useless-super-delegation
 
 import base64
 import json
@@ -52,13 +53,19 @@ class DysonAccount:
         """
         self._email = email
         self._password = password
+        self._country = country
+        self._logged = False
+        self._auth = None
+
+    def login(self):
+        """Login to dyson web services."""
         request_body = {
-            "Email": email,
-            "Password": password
+            "Email": self._email,
+            "Password": self._password
         }
         login = requests.post(
             "https://{0}/v1/userregistration/authenticate?country={1}".format(
-                DYSON_API_URL, country), request_body, verify=False)
+                DYSON_API_URL, self._country), request_body, verify=False)
         # pylint: disable=no-member
         if login.status_code == requests.codes.ok:
             json_response = login.json()
@@ -67,18 +74,23 @@ class DysonAccount:
             self._logged = True
         else:
             self._logged = False
+        return self._logged
 
     def devices(self):
         """Return all devices linked to the account."""
-        device_response = requests.get(
-            "https://{0}/v1/provisioningservice/manifest".format(
-                DYSON_API_URL), verify=False, auth=self._auth)
-        devices = []
-        for device in device_response.json():
-            dyson_device = DysonPureCoolLink(device)
-            devices.append(dyson_device)
+        if self._logged:
+            device_response = requests.get(
+                "https://{0}/v1/provisioningservice/manifest".format(
+                    DYSON_API_URL), verify=False, auth=self._auth)
+            devices = []
+            for device in device_response.json():
+                dyson_device = DysonPureCoolLink(device)
+                devices.append(dyson_device)
 
-        return devices
+            return devices
+        else:
+            _LOGGER.warning("Not logged to Dyson Web Services.")
+            raise DysonNotLoggedException()
 
     @property
     def logged(self):
@@ -519,3 +531,11 @@ class DysonState:
         fields = [self.fan_mode, self.fan_state, self.night_mode, self.speed,
                   self.oscillation, self.filter_life, self.qtar, self.rhtm]
         return 'DysonState(' + ",".join(fields) + ')'
+
+
+class DysonNotLoggedException(Exception):
+    """Not logged to Dyson Web Services Exception."""
+
+    def __init__(self):
+        """Dyson Not Logged Exception."""
+        super(DysonNotLoggedException, self).__init__()
