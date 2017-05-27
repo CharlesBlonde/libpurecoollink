@@ -33,6 +33,7 @@ def on_message(message):
 
 # Log to Dyson account
 dyson_account = DysonAccount("<dyson_account_email>","<dyson_account_password>","<language>")
+connected = dyson_account.login()
 # Language is a to characters code (eg: FR)
 
 # List devices
