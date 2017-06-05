@@ -225,15 +225,14 @@ class DysonPureCoolLink:
             userdata.state = device_msg
             for function in userdata.callback_message:
                 function(device_msg)
-        elif DysonEnvironmentalSensorState.is_environmental_state_message(payload):
+        elif DysonEnvironmentalSensorState.is_environmental_state_message(
+                payload):
             device_msg = DysonEnvironmentalSensorState(payload)
             userdata.environmental_state = device_msg
             for function in userdata.callback_message:
                 function(device_msg)
         else:
-            print("Unknown message"+payload)
-
-
+            _LOGGER.warning("Unknown message: %s", payload)
 
     @staticmethod
     def _decrypt_password(encrypted_password):
@@ -581,7 +580,6 @@ class DysonEnvironmentalSensorState:
         json_message = json.loads(payload)
         return json_message['msg'] in ["ENVIRONMENTAL-CURRENT-SENSOR-DATA"]
 
-
     @staticmethod
     def __get_field_value(state, field):
         """Get field value."""
@@ -625,6 +623,7 @@ class DysonEnvironmentalSensorState:
         fields = [str(self.humidity), str(self.volatil_organic_compounds),
                   str(self.temperature), str(self.dust)]
         return 'DysonEnvironmentalSensorState(' + ",".join(fields) + ')'
+
 
 class DysonNotLoggedException(Exception):
     """Not logged to Dyson Web Services Exception."""
