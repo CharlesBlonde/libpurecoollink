@@ -191,6 +191,7 @@ class DysonPureCoolLink:
         self._callback_message = []
         self._connected = False
         self._current_state = None
+        self._environmental_state = None
 
     def _add_network_device(self, network_device):
         """Add network device.
@@ -224,6 +225,15 @@ class DysonPureCoolLink:
             userdata.state = device_msg
             for function in userdata.callback_message:
                 function(device_msg)
+        elif DysonEnvironmentalSensorState.is_environmental_state_message(payload):
+            device_msg = DysonEnvironmentalSensorState(payload)
+            userdata.environmental_state = device_msg
+            for function in userdata.callback_message:
+                function(device_msg)
+        else:
+            print("Unknown message"+payload)
+
+
 
     @staticmethod
     def _decrypt_password(encrypted_password):
@@ -434,6 +444,16 @@ class DysonPureCoolLink:
         self._current_state = value
 
     @property
+    def environmental_state(self):
+        """Environmental Device state."""
+        return self._environmental_state
+
+    @environmental_state.setter
+    def environmental_state(self, value):
+        """Set Environmental Device state."""
+        self._environmental_state = value
+
+    @property
     def connected(self):
         """Device connected."""
         return self._connected
@@ -551,6 +571,60 @@ class DysonState:
                   self.standby_monitoring]
         return 'DysonState(' + ",".join(fields) + ')'
 
+
+class DysonEnvironmentalSensorState:
+    """Environmental sensor state."""
+
+    @staticmethod
+    def is_environmental_state_message(payload):
+        """Return true if this message is a state message."""
+        json_message = json.loads(payload)
+        return json_message['msg'] in ["ENVIRONMENTAL-CURRENT-SENSOR-DATA"]
+
+
+    @staticmethod
+    def __get_field_value(state, field):
+        """Get field value."""
+        return state[field][1] if isinstance(state[field], list) else state[
+            field]
+
+    def __init__(self, payload):
+        """Create a new Environmental sensor state.
+
+        :param payload: Message payload
+        """
+        json_message = json.loads(payload)
+        data = json_message['data']
+        self._humidity = int(self.__get_field_value(data, 'hact'))
+        self._volatil_compounds = int(self.__get_field_value(data, 'vact'))
+        self._temperature = float(self.__get_field_value(data, 'tact'))/10
+        self._dust = int(self.__get_field_value(data, 'pact'))
+
+    @property
+    def humidity(self):
+        """Humidity in percent."""
+        return self._humidity
+
+    @property
+    def volatil_organic_compounds(self):
+        """Volatil organic compounds level."""
+        return self._volatil_compounds
+
+    @property
+    def temperature(self):
+        """Temperature in Kelvin."""
+        return self._temperature
+
+    @property
+    def dust(self):
+        """Dust level."""
+        return self._dust
+
+    def __repr__(self):
+        """Return a String representation."""
+        fields = [str(self.humidity), str(self.volatil_organic_compounds),
+                  str(self.temperature), str(self.dust)]
+        return 'DysonEnvironmentalSensorState(' + ",".join(fields) + ')'
 
 class DysonNotLoggedException(Exception):
     """Not logged to Dyson Web Services Exception."""
