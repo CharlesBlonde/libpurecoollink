@@ -219,6 +219,7 @@ class DysonPureCoolLink:
         # pylint: disable=unused-argument
         """Set function Callback when message received."""
         payload = msg.payload.decode("utf-8")
+        
         if DysonState.is_state_message(payload):
             device_msg = DysonState(payload)
             userdata.state = device_msg
@@ -307,13 +308,16 @@ class DysonPureCoolLink:
                 self.serial)
 
     def set_fan_configuration(self, fan_mode, oscillation, fan_speed,
-                              night_mode):
+                              night_mode,quality_target,standby_monitoring,sleep_timer):
         """Configure Fan.
 
         :param fan_mode: Fan mode (const.FanMode)
         :param oscillation: Oscillation mode (const.Oscillation)
         :param fan_speed: Fan Speed (const.FanSpeed)
         :param night_mode: Night Mode (const.NightMode)
+        :param quality_target: Air Quality target (const.QualityTarget)
+        :param standby_monitoring: Monitor when on standby (const.StandbyMonitoring)
+        :param sleep_timer: Sleep timer in minutes, 0 to cancel (string)
         """
         if self._connected:
             f_mode = fan_mode.value if fan_mode \
@@ -324,6 +328,13 @@ class DysonPureCoolLink:
                 else self._current_state.oscillation
             f_night_mode = night_mode.value if night_mode \
                 else self._current_state.night_mode
+            f_quality_target = quality_target.value if quality_target \
+                else self._current_state.quality_target
+            f_standby_monitoring = standby_monitoring.value if standby_monitoring \
+                else self._current_state.standby_monitoring
+            f_sleep_timer = sleep_timer if sleep_timer \
+                else "STET" 
+            
             payload = {
                 "msg": "STATE-SET",
                 "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -332,10 +343,10 @@ class DysonPureCoolLink:
                     "fmod": f_mode,
                     "fnsp": f_speed,
                     "oson": f_oscillation,
-                    "sltm": "STET",  # ??
-                    "rhtm": self._current_state.rhtm,  # ??
+                    "sltm": f_sleep_timer,  # sleep timer
+                    "rhtm": f_standby_monitoring,  # monitor air quality when inactive
                     "rstf": "STET",  # ??,
-                    "qtar": self._current_state.qtar,  # ??
+                    "qtar": f_quality_target,
                     "nmod": f_night_mode
                 }
             }
@@ -356,9 +367,12 @@ class DysonPureCoolLink:
         oscillation = kwargs.get('oscillation')
         fan_speed = kwargs.get('fan_speed')
         night_mode = kwargs.get('night_mode')
+        quality_target = kwargs.get('quality_target')
+        standby_monitoring = kwargs.get('standby_monitoring')
+        sleep_timer = kwargs.get('sleep_timer')
 
         self.set_fan_configuration(fan_mode, oscillation, fan_speed,
-                                   night_mode)
+                                   night_mode,quality_target,standby_monitoring,sleep_timer)
 
     @property
     def active(self):
@@ -460,7 +474,7 @@ class DysonState:
 
     @staticmethod
     def is_state_message(payload):
-        """Return treu if this message is a state message."""
+        """Return true if this message is a state message."""
         json_message = json.loads(payload)
         return json_message['msg'] in ["CURRENT-STATE", "STATE-CHANGE"]
 
@@ -483,8 +497,8 @@ class DysonState:
         self._speed = self.__get_field_value(state, 'fnsp')
         self._oscilation = self.__get_field_value(state, 'oson')
         self._filter_life = self.__get_field_value(state, 'filf')
-        self._qtar = self.__get_field_value(state, 'qtar')
-        self._rhtm = self.__get_field_value(state, 'rhtm')
+        self._quality_target = self.__get_field_value(state, 'qtar')
+        self._standby_monitoring = self.__get_field_value(state, 'rhtm')
 
     @property
     def fan_mode(self):
@@ -517,19 +531,19 @@ class DysonState:
         return self._filter_life
 
     @property
-    def qtar(self):
-        """Unknown property."""
-        return self._qtar
+    def quality_target(self):
+        """Air quality target"""
+        return self._quality_target
 
     @property
-    def rhtm(self):
-        """Unknown property."""
-        return self._rhtm
+    def standby_monitoring(self):
+        """Monitor when inactive (standby)"""
+        return self._standby_monitoring
 
     def __repr__(self):
         """Return a String representation."""
         fields = [self.fan_mode, self.fan_state, self.night_mode, self.speed,
-                  self.oscillation, self.filter_life, self.qtar, self.rhtm]
+                  self.oscillation, self.filter_life, self.quality_target, self.standby_monitoring]
         return 'DysonState(' + ",".join(fields) + ')'
 
 
