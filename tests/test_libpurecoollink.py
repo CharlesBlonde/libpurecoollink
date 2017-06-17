@@ -5,7 +5,8 @@ from unittest.mock import Mock
 import json
 
 from libpurecoollink.dyson import DysonAccount, NetworkDevice, \
-    DysonPureCoolLink, DysonState, DysonNotLoggedException
+    DysonPureCoolLink, DysonState, DysonNotLoggedException, \
+    DysonEnvironmentalSensorState
 from libpurecoollink.const import FanMode, NightMode, FanSpeed, Oscillation, \
     FanState, QualityTarget, StandbyMonitoring as SM
 
@@ -278,7 +279,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         listener.add_service(zeroconf, '_dyson_mqtt._tcp.local.',
                              'ptype_serial-1._dyson_mqtt._tcp.local.')
 
-    def test_on_connect(self):
+    @mock.patch('libpurecoollink.dyson.EnvironmentalSensorThread.run')
+    def test_on_connect(self, mocked_thread_run):
         client = Mock()
         client.subscribe = Mock()
         userdata = Mock()
@@ -288,6 +290,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         userdata.connection_callback.assert_called_with(True)
         self.assertEqual(userdata.connection_callback.call_count, 1)
         client.subscribe.assert_called_with("ptype/serial/status/current")
+        self.assertEqual(mocked_thread_run.call_count, 1)
 
     def test_on_connect_failed(self):
         userdata = Mock()
@@ -328,7 +331,7 @@ class TestLibPureCoolLink(unittest.TestCase):
 
     def test_on_message(self):
         def on_message(msg):
-            pass
+            assert isinstance(msg, DysonState)
 
         userdata = Mock()
         userdata.callback_message = [on_message]
@@ -340,6 +343,35 @@ class TestLibPureCoolLink(unittest.TestCase):
                   b'"fnsp":"AUTO","qtar":"0004","oson":"OFF","rhtm":"ON",' \
                   b'"filf":"2159","ercd":"02C0","nmod":"ON","wacd":"NONE"},' \
                   b'"scheduler":{"srsc":"cbd0","dstv":"0001","tzid":"0001"}}'
+        msg.payload = payload
+        DysonPureCoolLink.on_message(None, userdata, msg)
+
+    def test_on_message_sensor(self):
+        def on_message(msg):
+            assert isinstance(msg, DysonEnvironmentalSensorState)
+
+        userdata = Mock()
+        userdata.callback_message = [on_message]
+        msg = Mock()
+        payload = b'{"msg": "ENVIRONMENTAL-CURRENT-SENSOR-DATA","time":' \
+                  b'"2017-06-17T23:05:49.001Z","data": '\
+                  b'{"tact": "2967","hact": "0054","pact": "0004",' \
+                  b'"vact": "0005","sltm": "0028"}}'
+        msg.payload = payload
+        DysonPureCoolLink.on_message(None, userdata, msg)
+
+    def test_on_message_with_unknown_message(self):
+        def on_message(msg):
+            # Should not be called
+            assert msg == 0
+
+        userdata = Mock()
+        userdata.callback_message = [on_message]
+        msg = Mock()
+        payload = b'{"msg": "ENVIRONMENTAL-CURRENT-SENSOR-DATAS","time":' \
+                  b'"2017-06-17T23:05:49.001Z","data": ' \
+                  b'{"tact": "2967","hact": "0054","pact": "0004",' \
+                  b'"vact": "0005","sltm": "0028"}}'
         msg.payload = payload
         DysonPureCoolLink.on_message(None, userdata, msg)
 
@@ -561,3 +593,21 @@ class TestLibPureCoolLink(unittest.TestCase):
                          QualityTarget.QUALITY_NORMAL.value)
         self.assertEqual(dyson_state.standby_monitoring,
                          SM.STANDBY_MONITORING_ON.value)
+
+    def test_sensor_state(self):
+        sensor_state = DysonEnvironmentalSensorState(
+            open("tests/data/sensor.json", "r").read())
+        self.assertEqual(sensor_state.sleep_timer, 28)
+        self.assertEqual(sensor_state.dust, 4)
+        self.assertEqual(sensor_state.humidity, 54)
+        self.assertEqual(sensor_state.temperature, 296.7)
+        self.assertEqual(sensor_state.volatil_organic_compounds, 5)
+
+    def test_sensor_state_sleep_timer_off(self):
+        sensor_state = DysonEnvironmentalSensorState(
+            open("tests/data/sensor_sltm_off.json", "r").read())
+        self.assertEqual(sensor_state.sleep_timer, 0)
+        self.assertEqual(sensor_state.dust, 4)
+        self.assertEqual(sensor_state.humidity, 54)
+        self.assertEqual(sensor_state.temperature, 296.7)
+        self.assertEqual(sensor_state.volatil_organic_compounds, 5)
