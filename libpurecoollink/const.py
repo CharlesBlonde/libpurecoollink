@@ -46,3 +46,18 @@ class FanState(Enum):
 
     FAN_OFF = "OFF"
     FAN_ON = "FAN"
+
+
+class QualityTarget(Enum):
+    """Quality Target for air."""
+
+    QUALITY_NORMAL = "0004"
+    QUALITY_HIGH = "0003"
+    QUALITY_BETTER = "0001"
+
+
+class StandbyMonitoring(Enum):
+    """Monitor air quality when on standby."""
+
+    STANDBY_MONITORING_ON = "ON"
+    STANDBY_MONITORING_OFF = "OFF"
