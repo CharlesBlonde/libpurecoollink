@@ -7,7 +7,7 @@ import json
 from libpurecoollink.dyson import DysonAccount, NetworkDevice, \
     DysonPureCoolLink, DysonState, DysonNotLoggedException
 from libpurecoollink.const import FanMode, NightMode, FanSpeed, Oscillation, \
-    FanState
+    FanState, QualityTarget, StandbyMonitoring as SM
 
 
 class MockResponse:
@@ -107,6 +107,24 @@ def _mocked_send_command(*args, **kwargs):
         assert payload['data']['rhtm'] == "ON"
         assert payload['mode-reason'] == "LAPP"
         assert payload['msg'] == "STATE-SET"
+        assert args[2] == 1
+
+
+def _mocked_send_command_timer(*args, **kwargs):
+    assert args[0] == '475/device-id-1/command'
+    payload = json.loads(args[1])
+    if payload['msg'] == "STATE-SET":
+        assert payload['time']
+        assert payload['data']['sltm'] == 10
+        assert args[2] == 1
+
+
+def _mocked_send_command_timer_off(*args, **kwargs):
+    assert args[0] == '475/device-id-1/command'
+    payload = json.loads(args[1])
+    if payload['msg'] == "STATE-SET":
+        assert payload['time']
+        assert payload['data']['sltm'] == 0
         assert args[2] == 1
 
 
@@ -417,7 +435,70 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.set_configuration(fan_mode=FanMode.FAN,
                                  oscillation=Oscillation.OSCILLATION_ON,
                                  fan_speed=FanSpeed.FAN_SPEED_3,
-                                 night_mode=NightMode.NIGHT_MODE_OFF)
+                                 night_mode=NightMode.NIGHT_MODE_OFF,
+                                 quality_target=QualityTarget.QUALITY_NORMAL,
+                                 standby_monitoring=SM.STANDBY_MONITORING_ON
+                                 )
+        self.assertEqual(mocked_publish.call_count, 2)
+        self.assertEqual(device.__repr__(),
+                         "DysonDevice(device-id-1,True,device-1,21.03.08,True"
+                         ",False,475,NetworkDevice(device-1,host,1111))")
+
+    @mock.patch('paho.mqtt.client.Client.publish',
+                side_effect=_mocked_send_command_timer)
+    @mock.patch('paho.mqtt.client.Client.connect')
+    def test_set_configuration_timer(self, mocked_connect, mocked_publish):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/70ZGysII1K"
+                                "e1i0ZHakFH84DZuxsSQ4KTT2vbCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        network_device = NetworkDevice('device-1', 'host', 1111)
+        device._add_network_device(network_device)
+        device._current_state = DysonState(open("tests/data/state.json", "r").
+                                           read())
+        device.connection_callback(True)
+        connected = device.connect(None)
+        self.assertTrue(connected)
+        self.assertEqual(mocked_connect.call_count, 1)
+        device.set_configuration(sleep_timer=10)
+        self.assertEqual(mocked_publish.call_count, 2)
+        self.assertEqual(device.__repr__(),
+                         "DysonDevice(device-id-1,True,device-1,21.03.08,True"
+                         ",False,475,NetworkDevice(device-1,host,1111))")
+
+    @mock.patch('paho.mqtt.client.Client.publish',
+                side_effect=_mocked_send_command_timer_off)
+    @mock.patch('paho.mqtt.client.Client.connect')
+    def test_set_configuration_timer_off(self, mocked_connect, mocked_publish):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/70ZGysII1K"
+                                "e1i0ZHakFH84DZuxsSQ4KTT2vbCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        network_device = NetworkDevice('device-1', 'host', 1111)
+        device._add_network_device(network_device)
+        device._current_state = DysonState(open("tests/data/state.json", "r").
+                                           read())
+        device.connection_callback(True)
+        connected = device.connect(None)
+        self.assertTrue(connected)
+        self.assertEqual(mocked_connect.call_count, 1)
+        device.set_configuration(sleep_timer=0)
         self.assertEqual(mocked_publish.call_count, 2)
         self.assertEqual(device.__repr__(),
                          "DysonDevice(device-id-1,True,device-1,21.03.08,True"
@@ -476,3 +557,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(dyson_state.filter_life, '2087')
         self.assertEqual(dyson_state.__repr__(),
                          "DysonState(AUTO,FAN,ON,AUTO,OFF,2087,0004,ON)")
+        self.assertEqual(dyson_state.quality_target,
+                         QualityTarget.QUALITY_NORMAL.value)
+        self.assertEqual(dyson_state.standby_monitoring,
+                         SM.STANDBY_MONITORING_ON.value)

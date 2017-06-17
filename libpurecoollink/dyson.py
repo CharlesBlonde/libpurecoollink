@@ -219,7 +219,6 @@ class DysonPureCoolLink:
         # pylint: disable=unused-argument
         """Set function Callback when message received."""
         payload = msg.payload.decode("utf-8")
-        
         if DysonState.is_state_message(payload):
             device_msg = DysonState(payload)
             userdata.state = device_msg
@@ -308,7 +307,9 @@ class DysonPureCoolLink:
                 self.serial)
 
     def set_fan_configuration(self, fan_mode, oscillation, fan_speed,
-                              night_mode,quality_target,standby_monitoring,sleep_timer):
+                              night_mode, quality_target, standby_monitoring,
+                              sleep_timer):
+        # pylint: disable=too-many-arguments,too-many-locals
         """Configure Fan.
 
         :param fan_mode: Fan mode (const.FanMode)
@@ -316,8 +317,9 @@ class DysonPureCoolLink:
         :param fan_speed: Fan Speed (const.FanSpeed)
         :param night_mode: Night Mode (const.NightMode)
         :param quality_target: Air Quality target (const.QualityTarget)
-        :param standby_monitoring: Monitor when on standby (const.StandbyMonitoring)
-        :param sleep_timer: Sleep timer in minutes, 0 to cancel (string)
+        :param standby_monitoring: Monitor when on standby
+                                   (const.StandbyMonitoring)
+        :param sleep_timer: Sleep timer in minutes, 0 to cancel (Integer)
         """
         if self._connected:
             f_mode = fan_mode.value if fan_mode \
@@ -330,11 +332,11 @@ class DysonPureCoolLink:
                 else self._current_state.night_mode
             f_quality_target = quality_target.value if quality_target \
                 else self._current_state.quality_target
-            f_standby_monitoring = standby_monitoring.value if standby_monitoring \
-                else self._current_state.standby_monitoring
-            f_sleep_timer = sleep_timer if sleep_timer \
-                else "STET" 
-            
+            f_standby_monitoring = standby_monitoring.value if \
+                standby_monitoring else self._current_state.standby_monitoring
+            f_sleep_timer = sleep_timer if sleep_timer or isinstance(
+                sleep_timer, int) else "STET"
+
             payload = {
                 "msg": "STATE-SET",
                 "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -344,7 +346,8 @@ class DysonPureCoolLink:
                     "fnsp": f_speed,
                     "oson": f_oscillation,
                     "sltm": f_sleep_timer,  # sleep timer
-                    "rhtm": f_standby_monitoring,  # monitor air quality when inactive
+                    "rhtm": f_standby_monitoring,  # monitor air quality
+                                                   # when inactive
                     "rstf": "STET",  # ??,
                     "qtar": f_quality_target,
                     "nmod": f_night_mode
@@ -372,7 +375,8 @@ class DysonPureCoolLink:
         sleep_timer = kwargs.get('sleep_timer')
 
         self.set_fan_configuration(fan_mode, oscillation, fan_speed,
-                                   night_mode,quality_target,standby_monitoring,sleep_timer)
+                                   night_mode, quality_target,
+                                   standby_monitoring, sleep_timer)
 
     @property
     def active(self):
@@ -532,18 +536,19 @@ class DysonState:
 
     @property
     def quality_target(self):
-        """Air quality target"""
+        """Air quality target."""
         return self._quality_target
 
     @property
     def standby_monitoring(self):
-        """Monitor when inactive (standby)"""
+        """Monitor when inactive (standby)."""
         return self._standby_monitoring
 
     def __repr__(self):
         """Return a String representation."""
         fields = [self.fan_mode, self.fan_state, self.night_mode, self.speed,
-                  self.oscillation, self.filter_life, self.quality_target, self.standby_monitoring]
+                  self.oscillation, self.filter_life, self.quality_target,
+                  self.standby_monitoring]
         return 'DysonState(' + ",".join(fields) + ')'
 
 
