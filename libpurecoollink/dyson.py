@@ -10,6 +10,7 @@ import socket
 import time
 from queue import Queue, Empty
 
+from threading import Thread
 import paho.mqtt.client as mqtt
 import requests
 from requests.auth import HTTPBasicAuth
@@ -133,6 +134,24 @@ class NetworkDevice:
         return 'NetworkDevice(' + ",".join(fields) + ')'
 
 
+class EnvironmentalSensorThread(Thread):
+    """Environmental Sensor thread.
+
+    The device don't send environmental data if not asked.
+    """
+    def __init__(self, request_data_method, interval=30):
+        """Create new Environmental Sensor thread."""
+        Thread.__init__(self)
+        self._interval = interval
+        self._request_data_method = request_data_method
+
+    def run(self):
+        """Start Websocket thread."""
+        while True:
+            self._request_data_method()
+            time.sleep(self._interval)
+
+
 class DysonPureCoolLink:
     """Dyson device (fan)."""
 
@@ -209,6 +228,11 @@ class DysonPureCoolLink:
             client.subscribe(
                 "{0}/{1}/status/current".format(userdata.product_type,
                                                 userdata.serial))
+
+            # Start Environmental thread
+            request_thread = EnvironmentalSensorThread(userdata.request_environmental_sensor_state)
+            request_thread.start()
+
             userdata.connection_callback(True)
         else:
             _LOGGER.error("Connection error: %s",
@@ -299,6 +323,21 @@ class DysonPureCoolLink:
             self._mqtt.loop_stop()
 
         return self._connected
+
+    def request_environmental_sensor_state(self):
+        """Request new state message."""
+        if self._connected:
+            payload = {
+                "msg": "REQUEST-PRODUCT-ENVIRONMENT-CURRENT-SENSOR-DATA",
+                "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            }
+            self._mqtt.publish(
+                self._product_type + "/" + self._serial + "/command",
+                json.dumps(payload))
+        else:
+            _LOGGER.warning(
+                "Unable to send commands because device %s is not connected",
+                self.serial)
 
     def request_current_state(self):
         """Request new state message."""
