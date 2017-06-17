@@ -139,6 +139,7 @@ class EnvironmentalSensorThread(Thread):
 
     The device don't send environmental data if not asked.
     """
+
     def __init__(self, request_data_method, interval=30):
         """Create new Environmental Sensor thread."""
         Thread.__init__(self)
@@ -146,7 +147,7 @@ class EnvironmentalSensorThread(Thread):
         self._request_data_method = request_data_method
 
     def run(self):
-        """Start Websocket thread."""
+        """Start Refresh sensor state thread."""
         while True:
             self._request_data_method()
             time.sleep(self._interval)
@@ -230,7 +231,8 @@ class DysonPureCoolLink:
                                                 userdata.serial))
 
             # Start Environmental thread
-            request_thread = EnvironmentalSensorThread(userdata.request_environmental_sensor_state)
+            request_thread = EnvironmentalSensorThread(
+                userdata.request_environmental_state)
             request_thread.start()
 
             userdata.connection_callback(True)
@@ -324,7 +326,7 @@ class DysonPureCoolLink:
 
         return self._connected
 
-    def request_environmental_sensor_state(self):
+    def request_environmental_state(self):
         """Request new state message."""
         if self._connected:
             payload = {

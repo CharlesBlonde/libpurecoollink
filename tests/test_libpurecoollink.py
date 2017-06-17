@@ -278,7 +278,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         listener.add_service(zeroconf, '_dyson_mqtt._tcp.local.',
                              'ptype_serial-1._dyson_mqtt._tcp.local.')
 
-    def test_on_connect(self):
+    @mock.patch('libpurecoollink.dyson.EnvironmentalSensorThread.run')
+    def test_on_connect(self, mocked_thread_run):
         client = Mock()
         client.subscribe = Mock()
         userdata = Mock()
@@ -288,6 +289,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         userdata.connection_callback.assert_called_with(True)
         self.assertEqual(userdata.connection_callback.call_count, 1)
         client.subscribe.assert_called_with("ptype/serial/status/current")
+        self.assertEqual(mocked_thread_run.call_count, 1)
 
     def test_on_connect_failed(self):
         userdata = Mock()
