@@ -638,6 +638,8 @@ class DysonEnvironmentalSensorState:
         self._volatil_compounds = int(self.__get_field_value(data, 'vact'))
         self._temperature = float(self.__get_field_value(data, 'tact'))/10
         self._dust = int(self.__get_field_value(data, 'pact'))
+        sltm = self.__get_field_value(data, 'sltm')
+        self._sleep_timer = 0 if sltm == 'OFF' else int(sltm)
 
     @property
     def humidity(self):
@@ -659,10 +661,16 @@ class DysonEnvironmentalSensorState:
         """Dust level."""
         return self._dust
 
+    @property
+    def sleep_timer(self):
+        """Sleep timer."""
+        return self._sleep_timer
+
     def __repr__(self):
         """Return a String representation."""
         fields = [str(self.humidity), str(self.volatil_organic_compounds),
-                  str(self.temperature), str(self.dust)]
+                  str(self.temperature), str(self.dust),
+                  str(self._sleep_timer)]
         return 'DysonEnvironmentalSensorState(' + ",".join(fields) + ')'
 
 
