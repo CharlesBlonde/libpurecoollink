@@ -1,12 +1,16 @@
 # Dyson Pure Cool Link Python library
 
-[![Build Status](https://travis-ci.org/CharlesBlonde/libpurecoollink.svg?branch=master)](https://travis-ci.org/CharlesBlonde/libpurecoollink) [![Coverage Status](https://coveralls.io/repos/github/CharlesBlonde/libpurecoollink/badge.svg?branch=master)](https://coveralls.io/github/CharlesBlonde/libpurecoollink?branch=master)
+[![Build Status](https://travis-ci.org/CharlesBlonde/libpurecoollink.svg?branch=master)](https://travis-ci.org/CharlesBlonde/libpurecoollink) [![Coverage Status](https://coveralls.io/repos/github/CharlesBlonde/libpurecoollink/badge.svg?branch=master)](https://coveralls.io/github/CharlesBlonde/libpurecoollink?branch=master)[![PyPI](https://img.shields.io/pypi/v/libpurecoollink.svg)](https://pypi.python.org/pypi/libpurecoollink) [![Documentation Status](https://readthedocs.org/projects/libpurecoollink/badge/?version=latest)](http://libpurecoollink.readthedocs.io/en/latest/?badge=latest)
 
-This *work in progress* library is a tentative to be able to use [Dyson fan/purifier devices](http://www.dyson.com/air-treatment/purifiers/dyson-pure-hot-cool-link.aspx) from Python 3.4+.
+This Python 3.4+ library allow you to control [Dyson fan/purifier devices](http://www.dyson.com/air-treatment/purifiers/dyson-pure-hot-cool-link.aspx) devices.
 
 ## Status
 
 This library is becoming quite stable and I'll do my best to keep backward compatibility.
+
+## Full documentation
+
+http://libpurecoollink.readthedocs.io
 
 ### Devices supported
 
@@ -39,64 +43,7 @@ The following sensors are available:
 
 ## Quick start
 
-Install the library
-
-```shell
-pip install libpurecoollink
-``` 
-
-```python
-
-from libpurecoollink.dyson import DysonAccount
-from libpurecoollink.const import FanSpeed, FanMode, NightMode, Oscillation, FanState
-from pprint import pprint
-import time
-
-# Callback function for each state/environment message
-def on_message(message):
-    # Print device state
-    pprint(message)
-
-# Log to Dyson account
-dyson_account = DysonAccount("<dyson_account_email>","<dyson_account_password>","<language>")
-connected = dyson_account.login()
-# Language is a two characters code (eg: FR)
-
-# List devices
-devices = dyson_account.devices()
-
-for device in devices:
-  # Print device information
-  pprint(device)
-  
-  # Connect to the device with discovery
-  connected = device.connect(on_message)
-  
-  # Print network information
-  pprint(device.network_device)
-    
-  time.sleep(2)
-  
-  # Set fan in auto mode, with night mode enable and oscillation disable
-  device.set_configuration(fan_mode=FanMode.AUTO, 
-    night_mode=NightMode.NIGHT_MODE_ON, 
-    oscillation=Oscillation.OSCILLATION_OFF)
-  
-  # Set fan in fan mode, night mode off, speed 4 and oscillation enable
-  device.set_configuration(fan_mode=FanMode.FAN, 
-    night_mode=NightMode.NIGHT_MODE_OFF, 
-    oscillation=Oscillation.OSCILLATION_ON,
-    fan_speed=FanSpeed.FAN_SPEED_4)
-    
-  # Set sleep timer to 5 minutes
-  device.set_configuration(sleep_timer=5)
-   
-  # Disable sleep timer
-  device.set_configuration(sleep_timer=0)
-
-# Wait to see status update
-time.sleep(10000)
-```
+Please read [official documentation](http://libpurecoollink.readthedocs.io)
 
 ## How it's work
 

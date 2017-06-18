@@ -281,6 +281,12 @@ Work to do
 -  Get historical data from the API (air quality, etc ...)
 -  Air Purifier Heater and fan support
 
+Releases
+--------
+
+.. toctree::
+    versions
+
 Contributors
 ------------
 
