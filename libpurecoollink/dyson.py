@@ -145,12 +145,22 @@ class EnvironmentalSensorThread(Thread):
         Thread.__init__(self)
         self._interval = interval
         self._request_data_method = request_data_method
+        self._stop_queue = Queue()
+
+    def stop(self):
+        """Stop the thread."""
+        self._stop_queue.put_nowait(True)
 
     def run(self):
         """Start Refresh sensor state thread."""
-        while True:
+        stopped = False
+        while not stopped:
             self._request_data_method()
-            time.sleep(self._interval)
+            try:
+                stopped = self._stop_queue.get(timeout=self._interval)
+            except Empty:
+                # Thread has not been stopped
+                pass
 
 
 class DysonPureCoolLink:
@@ -207,11 +217,15 @@ class DysonPureCoolLink:
         self._network_device = None
         self._search_device_queue = Queue()
         self._connection_queue = Queue()
+        self._state_data_available = Queue()
+        self._sensor_data_available = Queue()
+        self._device_available = False
         self._mqtt = None
         self._callback_message = []
         self._connected = False
         self._current_state = None
         self._environmental_state = None
+        self._request_thread = None
 
     def _add_network_device(self, network_device):
         """Add network device.
@@ -230,11 +244,6 @@ class DysonPureCoolLink:
                 "{0}/{1}/status/current".format(userdata.product_type,
                                                 userdata.serial))
 
-            # Start Environmental thread
-            request_thread = EnvironmentalSensorThread(
-                userdata.request_environmental_state)
-            request_thread.start()
-
             userdata.connection_callback(True)
         else:
             _LOGGER.error("Connection error: %s",
@@ -248,12 +257,16 @@ class DysonPureCoolLink:
         payload = msg.payload.decode("utf-8")
         if DysonState.is_state_message(payload):
             device_msg = DysonState(payload)
+            if not userdata.device_available:
+                userdata.state_data_available()
             userdata.state = device_msg
             for function in userdata.callback_message:
                 function(device_msg)
         elif DysonEnvironmentalSensorState.is_environmental_state_message(
                 payload):
             device_msg = DysonEnvironmentalSensorState(payload)
+            if not userdata.device_available:
+                userdata.sensor_data_available()
             userdata.environmental_state = device_msg
             for function in userdata.callback_message:
                 function(device_msg)
@@ -321,10 +334,39 @@ class DysonPureCoolLink:
         self._connected = self._connection_queue.get(timeout=10)
         if self._connected:
             self.request_current_state()
+            # Start Environmental thread
+            self._request_thread = EnvironmentalSensorThread(
+                self.request_environmental_state)
+            self._request_thread.start()
+
+            # Wait for first data
+            self._state_data_available.get()
+            self._sensor_data_available.get()
+            self._device_available = True
         else:
             self._mqtt.loop_stop()
 
         return self._connected
+
+    def state_data_available(self):
+        """Call when first state data are available. Internal method."""
+        _LOGGER.debug("State data available for device %s", self._serial)
+        self._state_data_available.put_nowait(True)
+
+    def sensor_data_available(self):
+        """Call when first sensor data are available. Internal method."""
+        _LOGGER.debug("Sensor data available for device %s", self._serial)
+        self._sensor_data_available.put_nowait(True)
+
+    @property
+    def device_available(self):
+        """Return True if device is fully available, else false."""
+        return self._device_available
+
+    def disconnect(self):
+        """Disconnect from the device."""
+        self._request_thread.stop()
+        self._connected = False
 
     def request_environmental_state(self):
         """Request new state message."""
@@ -635,7 +677,9 @@ class DysonEnvironmentalSensorState:
         json_message = json.loads(payload)
         data = json_message['data']
         self._humidity = int(self.__get_field_value(data, 'hact'))
-        self._volatil_compounds = int(self.__get_field_value(data, 'vact'))
+        volatil_copounds = self.__get_field_value(data, 'vact')
+        self._volatil_compounds = 0 if volatil_copounds == 'INIT' else int(
+            volatil_copounds)
         self._temperature = float(self.__get_field_value(data, 'tact'))/10
         self._dust = int(self.__get_field_value(data, 'pact'))
         sltm = self.__get_field_value(data, 'sltm')

@@ -6,8 +6,7 @@ This *work in progress* library is a tentative to be able to use [Dyson fan/puri
 
 ## Status
 
-This is an early work and library can change. No backward compatibility at this time.
-No Pypi release (coming soon)
+This library is becoming quite stable and I'll do my best to keep backward compatibility.
 
 ### Devices supported
 
@@ -17,7 +16,34 @@ Dyson pure cool link devices (Tower and Desk)
 
 Air Purifier Heater and fan
 
+## Features
+
+The following feature are supported:
+
+* Connect to the device using discovery or manually with IP Address
+* Turn on/off
+* Set speed
+* Turn on/off oscillation
+* Set Auto mode
+* Set night mode
+* Set sleep timer
+* Set Air Quality target (Normal, High, Better)
+* Enable/disable standby monitoring (the device continue to update sensors when in standby)
+
+The following sensors are available:
+
+* Humidity
+* Temperature in Kelvin
+* Dust (unknown metric)
+* Volatil organic compounds (unknown metric)
+
 ## Quick start
+
+Install the library
+
+```shell
+pip install libpurecoollink
+``` 
 
 ```python
 
@@ -26,7 +52,7 @@ from libpurecoollink.const import FanSpeed, FanMode, NightMode, Oscillation, Fan
 from pprint import pprint
 import time
 
-# Callback function for each state message
+# Callback function for each state/environment message
 def on_message(message):
     # Print device state
     pprint(message)
@@ -34,7 +60,7 @@ def on_message(message):
 # Log to Dyson account
 dyson_account = DysonAccount("<dyson_account_email>","<dyson_account_password>","<language>")
 connected = dyson_account.login()
-# Language is a to characters code (eg: FR)
+# Language is a two characters code (eg: FR)
 
 # List devices
 devices = dyson_account.devices()
@@ -43,7 +69,7 @@ for device in devices:
   # Print device information
   pprint(device)
   
-  # Connect to the device
+  # Connect to the device with discovery
   connected = device.connect(on_message)
   
   # Print network information
@@ -60,8 +86,13 @@ for device in devices:
   device.set_configuration(fan_mode=FanMode.FAN, 
     night_mode=NightMode.NIGHT_MODE_OFF, 
     oscillation=Oscillation.OSCILLATION_ON,
-    fan_speed=FanSpeed.FAN_SPEED_4
-    )
+    fan_speed=FanSpeed.FAN_SPEED_4)
+    
+  # Set sleep timer to 5 minutes
+  device.set_configuration(sleep_timer=5)
+   
+  # Disable sleep timer
+  device.set_configuration(sleep_timer=0)
 
 # Wait to see status update
 time.sleep(10000)
@@ -79,10 +110,10 @@ To my knowledge, no public technical information about API/MQTT are available so
 
 This library come with a modified version of [Zeroconf](https://github.com/jstasiak/python-zeroconf) because Dyson MDNS implementation is not valid.
 
+This [documentation](https://github.com/shadowwa/Dyson-MQTT2RRD) help me to understand some of return values.
+
 ## Work to do
 
-* Setup CI
-* Release on Pypi
 * Better protocol understanding
 * Better documentation on how it is working
 * Get historical data from the API (air quality, etc ...)

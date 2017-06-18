@@ -12,3 +12,4 @@ build/
 main/
 .project
 .pydevproject
+docs/_build
