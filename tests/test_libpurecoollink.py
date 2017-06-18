@@ -88,9 +88,10 @@ def _mocked_list_devices(*args, **kwargs):
 
 def _mocked_request_state(*args, **kwargs):
     assert args[0] == '475/device-id-1/command'
-    payload = json.loads(args[1])
-    assert payload['msg'] == 'REQUEST-CURRENT-STATE'
-    assert payload['time']
+    msg = json.loads(args[1])
+    assert msg['msg'] in ['REQUEST-CURRENT-STATE',
+                          'REQUEST-PRODUCT-ENVIRONMENT-CURRENT-SENSOR-DATA']
+    assert msg['time']
 
 
 def _mocked_send_command(*args, **kwargs):
@@ -190,6 +191,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         devices = dyson_account.devices()
         self.assertEqual(mocked_list_devices.call_count, 1)
         network_device = NetworkDevice('device-1', 'host', 1111)
+        devices[0].state_data_available()
+        devices[0].sensor_data_available()
         devices[0].connection_callback(True)
         devices[0]._add_network_device(network_device)
         connected = devices[0].connect(None)
@@ -198,6 +201,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(devices[0].network_device, network_device)
         self.assertEqual(mocked_connect.call_count, 1)
         self.assertEqual(mocked_loop.call_count, 1)
+        devices[0].disconnect()
 
     @mock.patch('paho.mqtt.client.Client.loop_start')
     @mock.patch('paho.mqtt.client.Client.connect')
@@ -214,6 +218,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(mocked_list_devices.call_count, 1)
 
         devices[0].connection_callback(True)
+        devices[0].state_data_available()
+        devices[0].sensor_data_available()
         connected = devices[0].connect(Mock(), "192.168.0.2")
         self.assertTrue(connected)
         self.assertIsNone(devices[0].state)
@@ -222,6 +228,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(devices[0].network_device.port, 1883)
         self.assertEqual(mocked_connect.call_count, 1)
         self.assertEqual(mocked_loop.call_count, 1)
+        devices[0].disconnect()
 
     @mock.patch('paho.mqtt.client.Client.loop_stop')
     @mock.patch('paho.mqtt.client.Client.loop_start')
@@ -279,8 +286,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         listener.add_service(zeroconf, '_dyson_mqtt._tcp.local.',
                              'ptype_serial-1._dyson_mqtt._tcp.local.')
 
-    @mock.patch('libpurecoollink.dyson.EnvironmentalSensorThread.run')
-    def test_on_connect(self, mocked_thread_run):
+    def test_on_connect(self):
         client = Mock()
         client.subscribe = Mock()
         userdata = Mock()
@@ -290,7 +296,6 @@ class TestLibPureCoolLink(unittest.TestCase):
         userdata.connection_callback.assert_called_with(True)
         self.assertEqual(userdata.connection_callback.call_count, 1)
         client.subscribe.assert_called_with("ptype/serial/status/current")
-        self.assertEqual(mocked_thread_run.call_count, 1)
 
     def test_on_connect_failed(self):
         userdata = Mock()
@@ -408,11 +413,15 @@ class TestLibPureCoolLink(unittest.TestCase):
         network_device = NetworkDevice('device-1', 'host', 1111)
         device.connection_callback(True)
         device._add_network_device(network_device)
+        device.state_data_available()
+        device.sensor_data_available()
         connected = device.connect(None)
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
-        device.request_current_state()
         self.assertEqual(mocked_publish.call_count, 2)
+        device.request_current_state()
+        self.assertEqual(mocked_publish.call_count, 3)
+        device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.publish',
                 side_effect=_mocked_request_state)
@@ -461,6 +470,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         device._current_state = DysonState(open("tests/data/state.json", "r").
                                            read())
         device.connection_callback(True)
+        device.state_data_available()
+        device.sensor_data_available()
         connected = device.connect(None)
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
@@ -471,10 +482,11 @@ class TestLibPureCoolLink(unittest.TestCase):
                                  quality_target=QualityTarget.QUALITY_NORMAL,
                                  standby_monitoring=SM.STANDBY_MONITORING_ON
                                  )
-        self.assertEqual(mocked_publish.call_count, 2)
+        self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
                          "DysonDevice(device-id-1,True,device-1,21.03.08,True"
                          ",False,475,NetworkDevice(device-1,host,1111))")
+        device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.publish',
                 side_effect=_mocked_send_command_timer)
@@ -497,14 +509,17 @@ class TestLibPureCoolLink(unittest.TestCase):
         device._current_state = DysonState(open("tests/data/state.json", "r").
                                            read())
         device.connection_callback(True)
+        device.state_data_available()
+        device.sensor_data_available()
         connected = device.connect(None)
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(sleep_timer=10)
-        self.assertEqual(mocked_publish.call_count, 2)
+        self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
                          "DysonDevice(device-id-1,True,device-1,21.03.08,True"
                          ",False,475,NetworkDevice(device-1,host,1111))")
+        device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.publish',
                 side_effect=_mocked_send_command_timer_off)
@@ -527,14 +542,17 @@ class TestLibPureCoolLink(unittest.TestCase):
         device._current_state = DysonState(open("tests/data/state.json", "r").
                                            read())
         device.connection_callback(True)
+        device.state_data_available()
+        device.sensor_data_available()
         connected = device.connect(None)
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(sleep_timer=0)
-        self.assertEqual(mocked_publish.call_count, 2)
+        self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
                          "DysonDevice(device-id-1,True,device-1,21.03.08,True"
                          ",False,475,NetworkDevice(device-1,host,1111))")
+        device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.publish',
                 side_effect=_mocked_send_command)
