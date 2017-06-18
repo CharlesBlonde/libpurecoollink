@@ -88,9 +88,10 @@ def _mocked_list_devices(*args, **kwargs):
 
 def _mocked_request_state(*args, **kwargs):
     assert args[0] == '475/device-id-1/command'
-    payload = json.loads(args[1])
-    assert payload['msg'] == 'REQUEST-CURRENT-STATE'
-    assert payload['time']
+    msg = json.loads(args[1])
+    assert msg['msg'] in ['REQUEST-CURRENT-STATE',
+                          'REQUEST-PRODUCT-ENVIRONMENT-CURRENT-SENSOR-DATA']
+    assert msg['time']
 
 
 def _mocked_send_command(*args, **kwargs):
