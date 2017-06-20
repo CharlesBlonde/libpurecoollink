@@ -241,8 +241,7 @@ class DysonPureCoolLink:
         if return_code == 0:
             _LOGGER.debug("Connected with result code: %s", return_code)
             client.subscribe(
-                "{0}/{1}/status/current".format(userdata.product_type,
-                                                userdata.serial))
+                "#".format(userdata.product_type))
 
             userdata.connection_callback(True)
         else:
@@ -254,7 +253,9 @@ class DysonPureCoolLink:
     def on_message(client, userdata, msg):
         # pylint: disable=unused-argument
         """Set function Callback when message received."""
+        _LOGGER.warning("Topic:" +msg.topic)
         payload = msg.payload.decode("utf-8")
+        _LOGGER.warning("Message: "+payload)
         if DysonState.is_state_message(payload):
             device_msg = DysonState(payload)
             if not userdata.device_available:
@@ -340,9 +341,14 @@ class DysonPureCoolLink:
             self._request_thread.start()
 
             # Wait for first data
-            self._state_data_available.get()
-            self._sensor_data_available.get()
-            self._device_available = True
+            try:
+                self._state_data_available.get(timeout=10)
+                self._sensor_data_available.get(timeout=10)
+                self._device_available = True
+            except Empty:
+                _LOGGER.error("No status messages received !")
+                self._mqtt.loop_stop()
+                self._connected = False
         else:
             self._mqtt.loop_stop()
 
