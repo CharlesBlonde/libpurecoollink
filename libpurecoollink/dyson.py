@@ -588,7 +588,7 @@ class DysonState:
     def is_state_message(payload):
         """Return true if this message is a state message."""
         json_message = json.loads(payload)
-        return json_message['msg'] in ["CURRENT-STATE", "STATE-CHANGE"]
+        return 'msg' in json_message and json_message['msg'] in ["CURRENT-STATE", "STATE-CHANGE"]
 
     @staticmethod
     def __get_field_value(state, field):
@@ -667,7 +667,7 @@ class DysonEnvironmentalSensorState:
     def is_environmental_state_message(payload):
         """Return true if this message is a state message."""
         json_message = json.loads(payload)
-        return json_message['msg'] in ["ENVIRONMENTAL-CURRENT-SENSOR-DATA"]
+        return 'msg' in json_message and json_message['msg'] in ["ENVIRONMENTAL-CURRENT-SENSOR-DATA"]
 
     @staticmethod
     def __get_field_value(state, field):
