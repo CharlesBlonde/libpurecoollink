@@ -51,6 +51,7 @@ The following commands are supported:
 -  Set sleep timer
 -  Set Air Quality target (Normal, High, Better)
 -  Enable/disable standby monitoring (the device continue to update sensors when in standby)
+-  Reset filter life
 
 Sensors
 ~~~~~~~
