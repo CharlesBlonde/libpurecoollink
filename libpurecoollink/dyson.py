@@ -400,7 +400,7 @@ class DysonPureCoolLink:
 
     def set_fan_configuration(self, fan_mode, oscillation, fan_speed,
                               night_mode, quality_target, standby_monitoring,
-                              sleep_timer):
+                              sleep_timer, reset_filter):
         # pylint: disable=too-many-arguments,too-many-locals
         """Configure Fan.
 
@@ -412,6 +412,7 @@ class DysonPureCoolLink:
         :param standby_monitoring: Monitor when on standby
                                    (const.StandbyMonitoring)
         :param sleep_timer: Sleep timer in minutes, 0 to cancel (Integer)
+        :param reset_filter: reset filter life (const.resetFilter)
         """
         if self._connected:
             f_mode = fan_mode.value if fan_mode \
@@ -428,6 +429,8 @@ class DysonPureCoolLink:
                 standby_monitoring else self._current_state.standby_monitoring
             f_sleep_timer = sleep_timer if sleep_timer or isinstance(
                 sleep_timer, int) else "STET"
+            f_reset_filter = reset_filter.value if reset_filter \
+                else "STET"
 
             payload = {
                 "msg": "STATE-SET",
@@ -440,7 +443,7 @@ class DysonPureCoolLink:
                     "sltm": f_sleep_timer,  # sleep timer
                     "rhtm": f_standby_monitoring,  # monitor air quality
                                                    # when inactive
-                    "rstf": "STET",  # ??,
+                    "rstf": f_reset_filter,  # reset filter lifecycle
                     "qtar": f_quality_target,
                     "nmod": f_night_mode
                 }
@@ -465,10 +468,12 @@ class DysonPureCoolLink:
         quality_target = kwargs.get('quality_target')
         standby_monitoring = kwargs.get('standby_monitoring')
         sleep_timer = kwargs.get('sleep_timer')
+        reset_filter = kwargs.get('reset_filter')
 
         self.set_fan_configuration(fan_mode, oscillation, fan_speed,
                                    night_mode, quality_target,
-                                   standby_monitoring, sleep_timer)
+                                   standby_monitoring, sleep_timer,
+                                   reset_filter)
 
     @property
     def active(self):

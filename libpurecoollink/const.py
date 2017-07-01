@@ -61,3 +61,10 @@ class StandbyMonitoring(Enum):
 
     STANDBY_MONITORING_ON = "ON"
     STANDBY_MONITORING_OFF = "OFF"
+
+
+class ResetFilter(Enum):
+    """Reset the filter status / new filter."""
+
+    RESET_FILTER = "RSTF"
+    DO_NOTHING = "STET"
