@@ -163,7 +163,7 @@ After connected to the device, cammands cand be send in order to update configur
 
     from libpurecoollink.dyson import DysonAccount
     from libpurecoollink.const import FanSpeed, FanMode, NightMode, Oscillation, \
-        FanState, StandbyMonitoring, QualityTarget
+        FanState, StandbyMonitoring, QualityTarget, ResetFilter
 
     # ... connection do dyson account and to device ... #
 
@@ -187,6 +187,9 @@ After connected to the device, cammands cand be send in order to update configur
 
     # Disable standby monitoring
     devices[0].set_configuration(standby_monitoring=StandbyMonitoring.STANDBY_MONITORING_OFF)
+
+    # Reset filter life
+    devices[0].set_configuration(reset_filter=ResetFilter.RESET_FILTER)
 
     # Everything can be mixed in one call
     devices[0].set_configuration(sleep_timer=10,
