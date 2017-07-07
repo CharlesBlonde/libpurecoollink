@@ -38,7 +38,8 @@ Commands
 
 The following commands are supported:
 
-* All devices
+- All devices
+
   -  Connect to the device using discovery or manually with IP Address
   -  Turn on/off
   -  Set speed
@@ -49,7 +50,9 @@ The following commands are supported:
   -  Set Air Quality target (Normal, High, Better)
   -  Enable/disable standby monitoring (the device continue to update sensors when in standby)
   -  Reset filter life
-* Cool+Hot deveices
+
+- Cool+Hot devices
+
   -  Set heat mode
   -  Set heat target
   -  Set fan focus mode
