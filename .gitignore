@@ -13,3 +13,4 @@ main/
 .project
 .pydevproject
 docs/_build
+README.rst

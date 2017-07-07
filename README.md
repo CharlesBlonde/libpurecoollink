@@ -4,35 +4,40 @@
 
 This Python 3.4+ library allow you to control [Dyson fan/purifier devices](http://www.dyson.com/air-treatment/purifiers/dyson-pure-hot-cool-link.aspx) devices.
 
+[official documentation](http://libpurecoollink.readthedocs.io)
+
 ## Status
 
-This library is becoming quite stable and I'll do my best to keep backward compatibility.
+This library is becoming quite stable but backward compatibility is not yet guaranteed.
 
 ## Full documentation
 
 http://libpurecoollink.readthedocs.io
 
-### Devices supported
+### Supported devices
 
-Dyson pure cool link devices (Tower and Desk)
-
-### Devices not tested
-
-Air Purifier Heater and fan
+* Dyson pure cool link devices (Tower and Desk)
+* Dyson pure cool+hot devices
 
 ## Features
 
 The following feature are supported:
 
-* Connect to the device using discovery or manually with IP Address
-* Turn on/off
-* Set speed
-* Turn on/off oscillation
-* Set Auto mode
-* Set night mode
-* Set sleep timer
-* Set Air Quality target (Normal, High, Better)
-* Enable/disable standby monitoring (the device continue to update sensors when in standby)
+* All devices:
+    * Connect to the device using discovery or manually with IP Address
+    * Turn on/off
+    * Set speed
+    * Turn on/off oscillation
+    * Set Auto mode
+    * Set night mode
+    * Set sleep timer
+    * Set Air Quality target (Normal, High, Better)
+    * Enable/disable standby monitoring (the device continue to update sensors when in standby)
+    * Reset filter life
+* Cool+Hot devices:
+    * Set heat mode
+    * Set heat target
+    * Set fan focus mode
 
 The following sensors are available:
 

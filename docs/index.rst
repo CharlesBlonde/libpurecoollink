@@ -27,12 +27,8 @@ Discovery is not fully reliable yet. It's working most of the time but sometimes
 Devices fully supported
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Dyson pure cool link devices (Tower and Desk)
-
-Devices partially supported
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Air Purifier Heater and fan. Testers reported successful feedback but heating option is not supported at this time. Help welcome!
+-  Dyson pure cool link devices (Tower and Desk)
+-  Dyson Cool+Hot devices
 
 Features
 --------
@@ -42,16 +38,21 @@ Commands
 
 The following commands are supported:
 
--  Connect to the device using discovery or manually with IP Address
--  Turn on/off
--  Set speed
--  Turn on/off oscillation
--  Set Auto mode
--  Set night mode
--  Set sleep timer
--  Set Air Quality target (Normal, High, Better)
--  Enable/disable standby monitoring (the device continue to update sensors when in standby)
--  Reset filter life
+* All devices
+  -  Connect to the device using discovery or manually with IP Address
+  -  Turn on/off
+  -  Set speed
+  -  Turn on/off oscillation
+  -  Set Auto mode
+  -  Set night mode
+  -  Set sleep timer
+  -  Set Air Quality target (Normal, High, Better)
+  -  Enable/disable standby monitoring (the device continue to update sensors when in standby)
+  -  Reset filter life
+* Cool+Hot deveices
+  -  Set heat mode
+  -  Set heat target
+  -  Set fan focus mode
 
 Sensors
 ~~~~~~~
@@ -158,13 +159,14 @@ Disconnection is required in order to release resources (an internal thread is s
 Send commands
 ~~~~~~~~~~~~~
 
-After connected to the device, cammands cand be send in order to update configuration
+After connected to the device, commands cand be send in order to update the device configuration
 
 .. code:: python
 
     from libpurecoollink.dyson import DysonAccount
     from libpurecoollink.const import FanSpeed, FanMode, NightMode, Oscillation, \
-        FanState, StandbyMonitoring, QualityTarget, ResetFilter
+        FanState, StandbyMonitoring, QualityTarget, ResetFilter, HeatMode, \
+        FocusMode, HeatTarget
 
     # ... connection do dyson account and to device ... #
 
@@ -191,6 +193,15 @@ After connected to the device, cammands cand be send in order to update configur
 
     # Reset filter life
     devices[0].set_configuration(reset_filter=ResetFilter.RESET_FILTER)
+
+    ## Cool+Hot devices only
+    # Set Heat mode
+    devices[0].set_configuration(heat_mode=HeatMode.HEAT_ON)
+    # Set heat target
+    devices[0].set_configuration(heat_target=HeatTarget.celsius(25))
+    devices[0].set_configuration(heat_target=HeatTarget.fahrenheit(70))
+    # Set fan focus mode
+    devices[0].set_configuration(focus_mode=FocusMode.FOCUS_ON)
 
     # Everything can be mixed in one call
     devices[0].set_configuration(sleep_timer=10,
