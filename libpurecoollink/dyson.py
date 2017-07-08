@@ -16,7 +16,9 @@ import requests
 from requests.auth import HTTPBasicAuth
 from Crypto.Cipher import AES
 
-from .utils import support_heating, printable_fields
+from .utils import support_heating, printable_fields, is_360_eye_device
+
+from .dyson_360_eye import Dyson360Eye
 
 from .zeroconf import ServiceBrowser, Zeroconf
 
@@ -84,8 +86,12 @@ class DysonAccount:
                     DYSON_API_URL), verify=False, auth=self._auth)
             devices = []
             for device in device_response.json():
-                dyson_device = DysonPureCoolLink(device)
-                devices.append(dyson_device)
+                if is_360_eye_device(device):
+                    dyson_360_eye = Dyson360Eye(device)
+                    devices.append(dyson_360_eye)
+                else:
+                    dyson_device = DysonPureCoolLink(device)
+                    devices.append(dyson_device)
 
             return devices
         else:
