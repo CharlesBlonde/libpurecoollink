@@ -15,6 +15,13 @@ def support_heating(product_type):
     return False
 
 
+def is_heating_device(json_payload):
+    """Return true if this json payload is a hot+cool device."""
+    if json_payload['ProductType'] in [DYSON_PURE_HOT_COOL_LINK_TOUR]:
+        return True
+    return False
+
+
 def printable_fields(fields):
     """Return printable fields.
 

@@ -28,14 +28,14 @@ class Dyson360Eye(DysonDevice):
                                              DEFAULT_PORT)
 
         self._mqtt = mqtt.Client(userdata=self, protocol=3)
+        self._mqtt.username_pw_set(self._serial, self._credentials)
         self._mqtt.on_message = self.on_message
         self._mqtt.on_connect = self.on_connect
-        self._mqtt.username_pw_set(self._serial, self._credentials)
         self._mqtt.connect(self._network_device.address,
                            self._network_device.port)
         self._mqtt.loop_start()
-        self._connected = self._connection_queue.get(timeout=10)
-        if self._connected:
+        if self._connection_queue.get(timeout=10):
+            self._connected = True
             _LOGGER.info("Connected to device %s", self.serial)
             self.request_current_state()
 
@@ -71,7 +71,7 @@ class Dyson360Eye(DysonDevice):
             self._mqtt.publish(self.command_topic, json.dumps(payload), 1)
         else:
             _LOGGER.warning(
-                "Unable to send commands because device %s is not connected",
+                "Not connected, can not send commands: %s",
                 self.serial)
 
     def set_power_mode(self, power_mode):
@@ -133,12 +133,7 @@ class Dyson360Eye(DysonDevice):
 
     def __repr__(self):
         """Return a String representation."""
-        fields = [("serial", self.serial), ("active", str(self.active)),
-                  ("name", self.name), ("version", self.version),
-                  ("auto_update", str(self.auto_update)),
-                  ("new_version_available", str(self.new_version_available)),
-                  ("product_type", self.product_type),
-                  ("network_device", str(self.network_device))]
+        fields = self._fields()
         return 'Dyson360Eye(' + ",".join(printable_fields(fields)) + ')'
 
 
@@ -147,9 +142,8 @@ class Dyson360EyeState:
 
     @staticmethod
     def is_state_message(payload):
-        """Return true if this message is a state message."""
-        json_message = json.loads(payload)
-        return json_message['msg'] in ["CURRENT-STATE", "STATE-CHANGE"]
+        """Return true if this message is a Dyson 360 Eye state message."""
+        return json.loads(payload)['msg'] in ["CURRENT-STATE", "STATE-CHANGE"]
 
     @staticmethod
     def __get_field_value(state, field):

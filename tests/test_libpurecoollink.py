@@ -4,9 +4,12 @@ from unittest import mock
 from unittest.mock import Mock
 import json
 
-from libpurecoollink.dyson import DysonAccount, NetworkDevice, \
-    DysonPureCoolLink, DysonState, DysonNotLoggedException, \
-    DysonEnvironmentalSensorState
+from libpurecoollink.dyson import DysonAccount, DysonNotLoggedException
+from libpurecoollink.dyson_device import NetworkDevice
+from libpurecoollink.dyson_pure_cool_link import DysonPureCoolState, \
+    DysonEnvironmentalSensorState, DysonPureCoolLink
+from libpurecoollink.dyson_pure_hotcool_link import DysonPureHotCoolLink
+from libpurecoollink.dyson_pure_state import DysonPureHotCoolState
 from libpurecoollink.const import FanMode, NightMode, FanSpeed, Oscillation, \
     FanState, QualityTarget, StandbyMonitoring as SM, \
     DYSON_PURE_COOL_LINK_DESK as Desk, DYSON_PURE_HOT_COOL_LINK_TOUR as Hot, \
@@ -332,8 +335,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         client = Mock()
         client.subscribe = Mock()
         userdata = Mock()
-        userdata.product_type = 'ptype'
-        userdata.serial = 'serial'
+        userdata.status_topic = "ptype/serial/status/current"
         DysonPureCoolLink.on_connect(client, userdata, None, 0)
         userdata.connection_callback.assert_called_with(True)
         self.assertEqual(userdata.connection_callback.call_count, 1)
@@ -378,7 +380,7 @@ class TestLibPureCoolLink(unittest.TestCase):
 
     def test_on_message(self):
         def on_message(msg):
-            assert isinstance(msg, DysonState)
+            assert isinstance(msg, DysonPureCoolState)
 
         userdata = Mock()
         userdata.callback_message = [on_message]
@@ -509,8 +511,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
         device._add_network_device(network_device)
-        device._current_state = DysonState(Desk, open("tests/data/state.json",
-                                                      "r").read())
+        device._current_state = DysonPureCoolState(
+            open("tests/data/state.json", "r").read())
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
@@ -526,7 +528,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                                  )
         self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
-                         "DysonDevice(serial=device-id-1,active=True,"
+                         "DysonPureCoolLink(serial=device-id-1,active=True,"
                          "name=device-1,version=21.03.08,auto_update=True,"
                          "new_version_available=False,product_type=469,"
                          "network_device=NetworkDevice(name=device-1,"
@@ -537,7 +539,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                 side_effect=_mocked_send_command_hot)
     @mock.patch('paho.mqtt.client.Client.connect')
     def test_set_configuration_hot(self, mocked_connect, mocked_publish):
-        device = DysonPureCoolLink({
+        device = DysonPureHotCoolLink({
             "Active": True,
             "Serial": "device-id-1",
             "Name": "device-1",
@@ -551,9 +553,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
         device._add_network_device(network_device)
-        device._current_state = DysonState(Hot,
-                                           open("tests/data/state_hot.json",
-                                                "r").read())
+        device._current_state = DysonPureCoolState(
+            open("tests/data/state_hot.json", "r").read())
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
@@ -572,7 +573,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                                  )
         self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
-                         "DysonDevice(serial=device-id-1,active=True,"
+                         "DysonPureHotCoolLink(serial=device-id-1,active=True,"
                          "name=device-1,version=21.03.08,auto_update=True,"
                          "new_version_available=False,product_type=455,"
                          "network_device=NetworkDevice(name=device-1,"
@@ -598,8 +599,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
         device._add_network_device(network_device)
-        device._current_state = DysonState(Desk, open("tests/data/state.json",
-                                                      "r").read())
+        device._current_state = DysonPureCoolState(
+            open("tests/data/state.json", "r").read())
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
@@ -616,7 +617,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                                  )
         self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
-                         "DysonDevice(serial=device-id-1,active=True,"
+                         "DysonPureCoolLink(serial=device-id-1,active=True,"
                          "name=device-1,version=21.03.08,auto_update=True,"
                          "new_version_available=False,product_type=475,"
                          "network_device=NetworkDevice(name=device-1,"
@@ -641,8 +642,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
         device._add_network_device(network_device)
-        device._current_state = DysonState(Desk, open("tests/data/state.json",
-                                                      "r").read())
+        device._current_state = DysonPureCoolState(
+            open("tests/data/state.json", "r").read())
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
@@ -652,7 +653,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.set_configuration(sleep_timer=10)
         self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
-                         "DysonDevice(serial=device-id-1,active=True,"
+                         "DysonPureCoolLink(serial=device-id-1,active=True,"
                          "name=device-1,version=21.03.08,auto_update=True,"
                          "new_version_available=False,product_type=475,"
                          "network_device=NetworkDevice(name=device-1,"
@@ -677,8 +678,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
         device._add_network_device(network_device)
-        device._current_state = DysonState(Desk, open("tests/data/state.json",
-                                                      "r").read())
+        device._current_state = DysonPureCoolState(
+            open("tests/data/state.json", "r").read())
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
@@ -688,7 +689,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.set_configuration(sleep_timer=0)
         self.assertEqual(mocked_publish.call_count, 3)
         self.assertEqual(device.__repr__(),
-                         "DysonDevice(serial=device-id-1,active=True,"
+                         "DysonPureCoolLink(serial=device-id-1,active=True,"
                          "name=device-1,version=21.03.08,auto_update=True,"
                          "new_version_available=False,product_type=475,"
                          "network_device=NetworkDevice(name=device-1,"
@@ -714,8 +715,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         })
         network_device = NetworkDevice('device-1', 'host', 1111)
         device._add_network_device(network_device)
-        device._current_state = DysonState(Desk, open("tests/data/state.json",
-                                                      "r").read())
+        device._current_state = DysonPureCoolState(
+            open("tests/data/state.json", "r").read())
         device.connection_callback(False)
         connected = device.connect(None)
         self.assertFalse(connected)
@@ -726,7 +727,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                                  night_mode=NightMode.NIGHT_MODE_OFF)
         self.assertEqual(mocked_publish.call_count, 0)
         self.assertEqual(device.__repr__(),
-                         "DysonDevice(serial=device-id-1,active=True,"
+                         "DysonPureCoolLink(serial=device-id-1,active=True,"
                          "name=device-1,version=21.03.08,auto_update=True,"
                          "new_version_available=False,product_type=475,"
                          "network_device=NetworkDevice(name=device-1,"
@@ -742,8 +743,8 @@ class TestLibPureCoolLink(unittest.TestCase):
                          "port=8090)")
 
     def test_dyson_state(self):
-        dyson_state = DysonState(Desk,
-                                 open("tests/data/state.json", "r").read())
+        dyson_state = DysonPureCoolState(
+            open("tests/data/state.json", "r").read())
         self.assertEqual(dyson_state.fan_mode, FanMode.AUTO.value)
         self.assertEqual(dyson_state.fan_state, FanState.FAN_ON.value)
         self.assertEqual(dyson_state.night_mode, NightMode.NIGHT_MODE_ON.value)
@@ -752,7 +753,7 @@ class TestLibPureCoolLink(unittest.TestCase):
                          Oscillation.OSCILLATION_OFF.value)
         self.assertEqual(dyson_state.filter_life, '2087')
         self.assertEqual(dyson_state.__repr__(),
-                         "DysonState(fan_mode=AUTO,fan_state=FAN,"
+                         "DysonPureCoolState(fan_mode=AUTO,fan_state=FAN,"
                          "night_mode=ON,speed=AUTO,oscillation=OFF,"
                          "filter_life=2087,quality_target=0004,"
                          "standby_monitoring=ON)")
@@ -762,8 +763,8 @@ class TestLibPureCoolLink(unittest.TestCase):
                          SM.STANDBY_MONITORING_ON.value)
 
     def test_dyson_state_hot(self):
-        dyson_state = DysonState(Hot,
-                                 open("tests/data/state_hot.json", "r").read())
+        dyson_state = DysonPureHotCoolState(
+            open("tests/data/state_hot.json", "r").read())
         self.assertEqual(dyson_state.fan_mode, FanMode.AUTO.value)
         self.assertEqual(dyson_state.fan_state, FanState.FAN_ON.value)
         self.assertEqual(dyson_state.night_mode, NightMode.NIGHT_MODE_ON.value)
@@ -777,7 +778,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(dyson_state.focus_mode, FocusMode.FOCUS_ON.value)
         self.assertEqual(dyson_state.heat_target, '2950')
         self.assertEqual(dyson_state.__repr__(),
-                         "DysonState(fan_mode=AUTO,fan_state=FAN,"
+                         "DysonHotCoolState(fan_mode=AUTO,fan_state=FAN,"
                          "night_mode=ON,speed=AUTO,oscillation=OFF,"
                          "filter_life=2087,quality_target=0004,"
                          "standby_monitoring=ON,tilt=OK,focus_mode=ON,"

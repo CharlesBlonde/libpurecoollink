@@ -210,3 +210,13 @@ class DysonDevice:
         """Call when first state data are available. Internal method."""
         _LOGGER.debug("State data available for device %s", self._serial)
         self._state_data_available.put_nowait(True)
+
+    def _fields(self):
+        """Return list of field tuples."""
+        fields = [("serial", self.serial), ("active", str(self.active)),
+                  ("name", self.name), ("version", self.version),
+                  ("auto_update", str(self.auto_update)),
+                  ("new_version_available", str(self.new_version_available)),
+                  ("product_type", self.product_type),
+                  ("network_device", str(self.network_device))]
+        return fields
