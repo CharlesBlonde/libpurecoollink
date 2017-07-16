@@ -1,0 +1,11 @@
+{
+  "msg": "MAP-DATA",
+  "gridID": "1",
+  "cleanId": "0e000000-4a47-3845-5548-454131323334",
+  "data": {
+    "content-type": "application/json",
+    "content-encoding": "gzip",
+    "content": "xxx"
+  },
+  "time": "2017-07-16T07:34:00Z"
+}

@@ -77,13 +77,6 @@ class DysonPureCoolLink(DysonDevice):
         return "{0}/{1}/status/current".format(self.product_type,
                                                self.serial)
 
-    def _add_network_device(self, network_device):
-        """Add network device.
-
-        :param network_device: Network device
-        """
-        self._search_device_queue.put_nowait(network_device)
-
     @staticmethod
     def on_message(client, userdata, msg):
         # pylint: disable=unused-argument

@@ -1,0 +1,14 @@
+{
+  "msg" : "CURRENT-STATE",
+  "state" : "INACTIVE_CHARGED",
+  "fullCleanType" : "",
+  "cleanId" : "0d000000-4a47-3845-5548-454131323334",
+  "currentVacuumPowerMode" : "halfPower",
+  "defaultVacuumPowerMode" : "halfPower",
+  "globalPosition" : [
+    6,
+    37
+  ],
+  "batteryChargeLevel" : 100,
+  "time" : "2017-07-16T07:31:28Z"
+}

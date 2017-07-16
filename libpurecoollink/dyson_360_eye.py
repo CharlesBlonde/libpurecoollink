@@ -174,7 +174,7 @@ class Dyson360EyeState:
             _LOGGER.error("Unknown power mode value %s",
                           data["currentVacuumPowerMode"])
             self._power_mode = data["currentVacuumPowerMode"]
-
+        self._clean_id = data["cleanId"]
         self._battery_level = int(data["batteryChargeLevel"])
 
     @property
@@ -202,9 +202,15 @@ class Dyson360EyeState:
         """Return battery level."""
         return self._battery_level
 
+    @property
+    def clean_id(self):
+        """Return battery level."""
+        return self._clean_id
+
     def __repr__(self):
         """Return a String representation."""
         fields = [("state", str(self.state)),
+                  ("state", str(self.clean_id)),
                   ("full_clean_type", str(self.full_clean_type)),
                   ("power_mode", str(self.power_mode)),
                   ("battery_level", str(self.battery_level)),

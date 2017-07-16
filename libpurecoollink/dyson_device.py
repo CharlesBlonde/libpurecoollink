@@ -183,6 +183,13 @@ class DysonDevice:
         """Network device."""
         return self._network_device
 
+    def _add_network_device(self, network_device):
+        """Add network device.
+
+        :param network_device: Network device
+        """
+        self._search_device_queue.put_nowait(network_device)
+
     @property
     def callback_message(self):
         """Return callback functions when message are received."""
