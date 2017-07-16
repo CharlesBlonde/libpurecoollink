@@ -745,6 +745,10 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(sensor_state.humidity, 54)
         self.assertEqual(sensor_state.temperature, 296.7)
         self.assertEqual(sensor_state.volatil_organic_compounds, 5)
+        self.assertEqual(sensor_state.__repr__(),
+                         "DysonEnvironmentalSensorState(humidity=54,"
+                         "air quality=5,temperature=296.7,"
+                         "dust=4,sleep_timer=28)")
 
     def test_sensor_state_sleep_timer_off(self):
         sensor_state = DysonEnvironmentalSensorState(
