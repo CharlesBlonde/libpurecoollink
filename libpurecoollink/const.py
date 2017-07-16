@@ -6,6 +6,7 @@ from .exceptions import DysonInvalidTargetTemperatureException as DITTE
 DYSON_PURE_COOL_LINK_TOUR = "475"
 DYSON_PURE_COOL_LINK_DESK = "469"
 DYSON_PURE_HOT_COOL_LINK_TOUR = "455"
+DYSON_360_EYE = "N223"
 
 
 class FanMode(Enum):
@@ -126,3 +127,32 @@ class ResetFilter(Enum):
 
     RESET_FILTER = "RSTF"
     DO_NOTHING = "STET"
+
+
+class PowerMode(Enum):
+    """360 Eye power mode."""
+
+    QUIET = "halfPower"
+    MAX = "fullPower"
+
+
+class Dyson360EyeMode(Enum):
+    """360 Eye state."""
+
+    INACTIVE_CHARGED = "INACTIVE_CHARGED"
+    FULL_CLEAN_INITIATED = "FULL_CLEAN_INITIATED"
+    FULL_CLEAN_RUNNING = "FULL_CLEAN_RUNNING"
+    FULL_CLEAN_PAUSED = "FULL_CLEAN_PAUSED"
+    FULL_CLEAN_ABORTED = "FULL_CLEAN_ABORTED"
+    FULL_CLEAN_FINISHED = "FULL_CLEAN_FINISHED"
+    INACTIVE_CHARGING = "INACTIVE_CHARGING"
+
+
+class Dyson360EyeCommand(Enum):
+    """360 Eye commands."""
+
+    STATE_SET = "STATE-SET"
+    START = "START"
+    PAUSE = "PAUSE"
+    RESUME = "RESUME"
+    ABORT = "ABORT"
