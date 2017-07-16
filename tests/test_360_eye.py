@@ -76,72 +76,111 @@ class TestDysonEye360Device(unittest.TestCase):
                                             "name=device-1,"
                                             "address=192.168.1.1,port=1883))")
 
-    def test_start(self):
+    def test_start_not_connected(self):
+        self._called = False
+
         def publish(topic, data, qos):
-            assert topic == 'N223/device-id-1/command'
-            assert qos == 1
-            assert json.loads(data)['msg'] == 'START'
-            assert json.loads(data)['fullCleanType'] == 'immediate'
+            self._called = True
+
+        device = self._device_sample()
+        device._connected = False
+        device._mqtt = Mock()
+        device._mqtt.publish = publish
+        device.start()
+        self.assertFalse(self._called)
+
+    def test_start(self):
+        self._parameters = None
+
+        def publish(topic, data, qos):
+            self._parameters = (topic, data, qos)
 
         device = self._device_sample()
         device._connected = True
         device._mqtt = Mock()
         device._mqtt.publish = publish
         device.start()
+        self.assertEqual(self._parameters[0], "N223/device-id-1/command")
+        self.assertEqual(json.loads(self._parameters[1])["msg"], "START")
+        self.assertEqual(json.loads(self._parameters[1])["fullCleanType"],
+                         "immediate")
+        self.assertEqual(self._parameters[2], 1)
 
     def test_pause(self):
+        self._parameters = None
+
         def publish(topic, data, qos):
-            assert topic == 'N223/device-id-1/command'
-            assert qos == 1
-            assert json.loads(data)['msg'] == 'PAUSE'
-            assert 'fullCleanType' not in json.loads(data)
+            self._parameters = (topic, data, qos)
 
         device = self._device_sample()
         device._connected = True
         device._mqtt = Mock()
         device._mqtt.publish = publish
         device.pause()
+        self.assertEqual(self._parameters[0], "N223/device-id-1/command")
+        self.assertEqual(json.loads(self._parameters[1])["msg"], "PAUSE")
+        self.assertTrue("fullCleanType" not in json.loads(self._parameters[1]))
+        self.assertEqual(self._parameters[2], 1)
 
     def test_resume(self):
+        self._parameters = None
+
         def publish(topic, data, qos):
-            assert topic == 'N223/device-id-1/command'
-            assert qos == 1
-            assert json.loads(data)['msg'] == 'RESUME'
-            assert 'fullCleanType' not in json.loads(data)
+            self._parameters = (topic, data, qos)
 
         device = self._device_sample()
         device._connected = True
         device._mqtt = Mock()
         device._mqtt.publish = publish
         device.resume()
+        self.assertEqual(self._parameters[0], "N223/device-id-1/command")
+        self.assertEqual(json.loads(self._parameters[1])["msg"], "RESUME")
+        self.assertTrue("fullCleanType" not in json.loads(self._parameters[1]))
+        self.assertEqual(self._parameters[2], 1)
 
     def test_abort(self):
+        self._parameters = None
+
         def publish(topic, data, qos):
-            assert topic == 'N223/device-id-1/command'
-            assert qos == 1
-            assert json.loads(data)['msg'] == 'RESUME'
-            assert 'fullCleanType' not in json.loads(data)
+            self._parameters = (topic, data, qos)
 
         device = self._device_sample()
         device._connected = True
         device._mqtt = Mock()
         device._mqtt.publish = publish
-        device.resume()
+        device.abort()
+        self.assertEqual(self._parameters[0], "N223/device-id-1/command")
+        self.assertEqual(json.loads(self._parameters[1])["msg"], "ABORT")
+        self.assertTrue("fullCleanType" not in json.loads(self._parameters[1]))
+        self.assertEqual(self._parameters[2], 1)
 
     def test_set_power_mode(self):
+        self._parameters = None
+
         def publish(topic, data, qos):
-            assert topic == 'N223/device-id-1/command'
-            assert qos == 1
-            assert json.loads(data)['msg'] == 'STATE-SET'
-            assert json.loads(data)['data'][
-                       'defaultVacuumPowerMode'] == 'fullPower'
-            assert 'fullCleanType' not in json.loads(data)
+            self._parameters = (topic, data, qos)
 
         device = self._device_sample()
         device._connected = True
         device._mqtt = Mock()
         device._mqtt.publish = publish
         device.set_power_mode(PowerMode.MAX)
+        self.assertEqual(self._parameters[0], "N223/device-id-1/command")
+        self.assertEqual(json.loads(self._parameters[1])["msg"], "STATE-SET")
+        self.assertEqual(
+            json.loads(self._parameters[1])["data"]["defaultVacuumPowerMode"],
+            "fullPower")
+        self.assertTrue("fullCleanType" not in json.loads(self._parameters[1]))
+        self.assertEqual(self._parameters[2], 1)
+
+        device.set_power_mode(PowerMode.QUIET)
+        self.assertEqual(self._parameters[0], "N223/device-id-1/command")
+        self.assertEqual(json.loads(self._parameters[1])["msg"], "STATE-SET")
+        self.assertEqual(
+            json.loads(self._parameters[1])["data"]["defaultVacuumPowerMode"],
+            "halfPower")
+        self.assertTrue("fullCleanType" not in json.loads(self._parameters[1]))
+        self.assertEqual(self._parameters[2], 1)
 
     def test_on_unknown_message(self):
         def callback_function(msg):
@@ -182,6 +221,35 @@ class TestDysonEye360Device(unittest.TestCase):
                          "state=Dyson360EyeMode.INACTIVE_CHARGED,"
                          "state=0d000000-4a47-3845-5548-454131323334,"
                          "full_clean_type=,power_mode=PowerMode.QUIET,"
+                         "battery_level=100,position=(6, 37))")
+
+    def test_on_state_unknown_values_message(self):
+        self.message = None
+
+        def callback_function(msg):
+            self.message = msg
+
+        state_message = open("tests/data/vacuum/state-unknown-values.json",
+                             "r").read()
+        device = self._device_sample()
+        device._connected = True
+        message = Mock()
+        message.payload = Mock()
+        message.payload.decode.return_value = state_message
+        device.add_message_listener(callback_function)
+        Dyson360Eye.on_message(None, device, message)
+        self.assertTrue(isinstance(self.message, Dyson360EyeState))
+        self.assertEqual(self.message.clean_id,
+                         "0d000000-4a47-3845-5548-454131323334")
+        self.assertEqual(self.message.state, "UNKNOWN")
+        self.assertEqual(self.message.full_clean_type, "")
+        self.assertEqual(self.message.position, (6, 37))
+        self.assertEqual(self.message.power_mode, "unknown")
+        self.assertEqual(self.message.battery_level, 100)
+        self.assertEqual(self.message.__repr__(),
+                         "Dyson360EyeState(state=UNKNOWN,"
+                         "state=0d000000-4a47-3845-5548-454131323334,"
+                         "full_clean_type=,power_mode=unknown,"
                          "battery_level=100,position=(6, 37))")
 
     def test_on_state_change_message(self):

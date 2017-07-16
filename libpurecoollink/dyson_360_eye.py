@@ -145,12 +145,6 @@ class Dyson360EyeState:
         """Return true if this message is a Dyson 360 Eye state message."""
         return json.loads(payload)['msg'] in ["CURRENT-STATE", "STATE-CHANGE"]
 
-    @staticmethod
-    def __get_field_value(state, field):
-        """Get field value."""
-        return state[field][1] if isinstance(state[field], list) else state[
-            field]
-
     def __init__(self, json_body):
         """Create a new Dyson 360 Eye state."""
         data = json.loads(json_body)
