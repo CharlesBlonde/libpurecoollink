@@ -4,7 +4,6 @@ from unittest import mock
 from unittest.mock import Mock
 import json
 
-from libpurecoollink.dyson import DysonAccount, DysonNotLoggedException
 from libpurecoollink.dyson_device import NetworkDevice
 from libpurecoollink.dyson_pure_cool_link import DysonPureCoolState, \
     DysonEnvironmentalSensorState, DysonPureCoolLink
@@ -15,81 +14,6 @@ from libpurecoollink.const import FanMode, NightMode, FanSpeed, Oscillation, \
     DYSON_PURE_COOL_LINK_DESK as Desk, DYSON_PURE_HOT_COOL_LINK_TOUR as Hot, \
     HeatMode, HeatState, HeatTarget, FocusMode, TiltState, ResetFilter
 from libpurecoollink.exceptions import DysonInvalidTargetTemperatureException
-
-
-class MockResponse:
-    def __init__(self, json, status_code=200):
-        self._json = json
-        self.status_code = status_code
-
-    def json(self, **kwargs):
-        return self._json
-
-
-def _mocked_login_post(*args, **kwargs):
-    url = 'https://{0}{1}?{2}={3}'.format('api.cp.dyson.com',
-                                          '/v1/userregistration/authenticate',
-                                          'country',
-                                          'language')
-    payload = {'Password': 'password', 'Email': 'email'}
-    if args[0] == url and args[1] == payload:
-        return MockResponse({
-            'Account': 'account',
-            'Password': 'password'
-        })
-    else:
-        raise Exception("Unknown call")
-
-
-def _mocked_login_post_failed(*args, **kwargs):
-    url = 'https://{0}{1}?{2}={3}'.format('api.cp.dyson.com',
-                                          '/v1/userregistration/authenticate',
-                                          'country',
-                                          'language')
-    payload = {'Password': 'password', 'Email': 'email'}
-    if args[0] == url and args[1] == payload:
-        return MockResponse({
-            'Account': 'account',
-            'Password': 'password'
-        }, 401)
-    else:
-        raise Exception("Unknown call")
-
-
-def _mocked_list_devices(*args, **kwargs):
-    url = 'https://{0}{1}'.format('api.cp.dyson.com',
-                                  '/v1/provisioningservice/manifest')
-    if args[0] == url:
-        return MockResponse(
-            [
-                {
-                    "Active": True,
-                    "Serial": "device-id-1",
-                    "Name": "device-1",
-                    "ScaleUnit": "SU01",
-                    "Version": "21.03.08",
-                    "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
-                                        "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
-                                        "bCm7uYeTORULKLKQ==",
-                    "AutoUpdate": True,
-                    "NewVersionAvailable": False,
-                    "ProductType": "475"
-                },
-                {
-                    "Active": False,
-                    "Serial": "device-id-2",
-                    "Name": "device-2",
-                    "ScaleUnit": "SU02",
-                    "Version": "21.02.04",
-                    "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuebkH6aWl2H5Q1vCq"
-                                        "CQSjJfENzMefozxWaDoW1yDluPsi09SGT5nW"
-                                        "MxqxtrfkxnUtRQ==",
-                    "AutoUpdate": False,
-                    "NewVersionAvailable": True,
-                    "ProductType": "469"
-                }
-            ]
-        )
 
 
 def _mocked_request_state(*args, **kwargs):
@@ -186,137 +110,129 @@ class TestLibPureCoolLink(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('requests.post', side_effect=_mocked_login_post)
-    def test_connect_account(self, mocked_login):
-        dyson_account = DysonAccount("email", "password", "language")
-        logged = dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(logged)
-
-    @mock.patch('requests.post', side_effect=_mocked_login_post_failed)
-    def test_connect_account_failed(self, mocked_login):
-        dyson_account = DysonAccount("email", "password", "language")
-        logged = dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertFalse(logged)
-
-    def test_not_logged(self):
-        dyson_account = DysonAccount("email", "password", "language")
-        self.assertRaises(DysonNotLoggedException, dyson_account.devices)
-
-    @mock.patch('requests.get', side_effect=_mocked_list_devices)
-    @mock.patch('requests.post', side_effect=_mocked_login_post)
-    def test_list_devices(self, mocked_login, mocked_list_devices):
-        dyson_account = DysonAccount("email", "password", "language")
-        dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(dyson_account.logged)
-        devices = dyson_account.devices()
-        self.assertEqual(mocked_list_devices.call_count, 1)
-        self.assertEqual(len(devices), 2)
-        self.assertTrue(devices[0].active)
-        self.assertTrue(devices[0].auto_update)
-        self.assertFalse(devices[0].new_version_available)
-        self.assertEqual(devices[0].serial, 'device-id-1')
-        self.assertEqual(devices[0].name, 'device-1')
-        self.assertEqual(devices[0].version, '21.03.08')
-        self.assertEqual(devices[0].product_type, '475')
-        self.assertEqual(devices[0].credentials, 'password1')
-
     @mock.patch('paho.mqtt.client.Client.loop_start')
     @mock.patch('paho.mqtt.client.Client.connect')
-    @mock.patch('requests.get', side_effect=_mocked_list_devices)
-    @mock.patch('requests.post', side_effect=_mocked_login_post)
-    def test_connect_device(self, mocked_login, mocked_list_devices,
-                            mocked_connect, mocked_loop):
-        dyson_account = DysonAccount("email", "password", "language")
-        logged = dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(logged)
-        devices = dyson_account.devices()
-        self.assertEqual(mocked_list_devices.call_count, 1)
+    def test_connect_device(self, mocked_connect, mocked_loop):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
         network_device = NetworkDevice('device-1', 'host', 1111)
-        devices[0].state_data_available()
-        devices[0].sensor_data_available()
-        devices[0].connection_callback(True)
-        devices[0]._add_network_device(network_device)
-        connected = devices[0].connect(None)
+        device.state_data_available()
+        device.sensor_data_available()
+        device.connection_callback(True)
+        device._add_network_device(network_device)
+        connected = device.connect(None)
         self.assertTrue(connected)
-        self.assertIsNone(devices[0].state)
-        self.assertEqual(devices[0].network_device, network_device)
+        self.assertIsNone(device.state)
+        self.assertEqual(device.network_device, network_device)
         self.assertEqual(mocked_connect.call_count, 1)
         self.assertEqual(mocked_loop.call_count, 1)
-        devices[0].disconnect()
+        device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.loop_start')
     @mock.patch('paho.mqtt.client.Client.connect')
-    @mock.patch('requests.get', side_effect=_mocked_list_devices)
-    @mock.patch('requests.post', side_effect=_mocked_login_post)
-    def test_connect_device_with_config(self, mocked_login,
-                                        mocked_list_devices, mocked_connect,
-                                        mocked_loop):
-        dyson_account = DysonAccount("email", "password", "language")
-        logged = dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(logged)
-        devices = dyson_account.devices()
-        self.assertEqual(mocked_list_devices.call_count, 1)
-
-        devices[0].connection_callback(True)
-        devices[0].state_data_available()
-        devices[0].sensor_data_available()
-        connected = devices[0].connect(Mock(), "192.168.0.2")
+    def test_connect_device_with_config(self, mocked_connect, mocked_loop):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        device.connection_callback(True)
+        device.state_data_available()
+        device.sensor_data_available()
+        connected = device.connect(Mock(), "192.168.0.2")
         self.assertTrue(connected)
-        self.assertIsNone(devices[0].state)
-        self.assertEqual(devices[0].network_device.name, "device-1")
-        self.assertEqual(devices[0].network_device.address, "192.168.0.2")
-        self.assertEqual(devices[0].network_device.port, 1883)
+        self.assertIsNone(device.state)
+        self.assertEqual(device.network_device.name, "device-1")
+        self.assertEqual(device.network_device.address, "192.168.0.2")
+        self.assertEqual(device.network_device.port, 1883)
         self.assertEqual(mocked_connect.call_count, 1)
         self.assertEqual(mocked_loop.call_count, 1)
-        devices[0].disconnect()
+        device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.loop_stop')
     @mock.patch('paho.mqtt.client.Client.loop_start')
     @mock.patch('paho.mqtt.client.Client.connect')
-    @mock.patch('requests.get', side_effect=_mocked_list_devices)
-    @mock.patch('requests.post', side_effect=_mocked_login_post)
-    def test_connect_device_with_config_failed(self, mocked_login,
-                                               mocked_list_devices,
+    def test_connect_device_with_config_failed(self,
                                                mocked_connect,
                                                mocked_loop_start,
                                                mocked_loop_stop):
-        dyson_account = DysonAccount("email", "password", "language")
-        dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(dyson_account.logged)
-        devices = dyson_account.devices()
-        self.assertEqual(mocked_list_devices.call_count, 1)
-
-        devices[0].connection_callback(False)
-        connected = devices[0].connect(Mock(), "192.168.0.2")
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        device.connection_callback(False)
+        connected = device.connect(Mock(), "192.168.0.2")
         self.assertFalse(connected)
-        self.assertIsNone(devices[0].state)
-        self.assertEqual(devices[0].network_device.name, "device-1")
-        self.assertEqual(devices[0].network_device.address, "192.168.0.2")
-        self.assertEqual(devices[0].network_device.port, 1883)
+        self.assertIsNone(device.state)
+        self.assertEqual(device.network_device.name, "device-1")
+        self.assertEqual(device.network_device.address, "192.168.0.2")
+        self.assertEqual(device.network_device.port, 1883)
         self.assertEqual(mocked_connect.call_count, 1)
         self.assertEqual(mocked_loop_start.call_count, 1)
         self.assertEqual(mocked_loop_stop.call_count, 1)
 
     @mock.patch('libpurecoollink.zeroconf.Zeroconf.close')
-    @mock.patch('paho.mqtt.client.Client.connect')
-    @mock.patch('requests.get', side_effect=_mocked_list_devices)
-    @mock.patch('requests.post', side_effect=_mocked_login_post)
-    def test_connect_device_fail(self, mocked_login, mocked_list_devices,
-                                 mocked_connect, mocked_close_zeroconf):
-        dyson_account = DysonAccount("email", "password", "language")
-        dyson_account.login()
-        self.assertEqual(mocked_login.call_count, 1)
-        self.assertTrue(dyson_account.logged)
-        devices = dyson_account.devices()
-        self.assertEqual(mocked_list_devices.call_count, 1)
-        connected = devices[0].connect(None, retry=1, timeout=1)
+    def test_connect_device_fail(self, mocked_close_zeroconf):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        connected = device.connect(None, retry=1, timeout=1)
         self.assertFalse(connected)
+        self.assertEqual(mocked_close_zeroconf.call_count, 1)
+
+    def test_status_topic(self):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        self.assertEqual(device.status_topic, "475/device-id-1/status/current")
 
     @mock.patch('socket.inet_ntoa', )
     def test_device_dyson_listener(self, mocked_ntoa):
@@ -381,19 +297,48 @@ class TestLibPureCoolLink(unittest.TestCase):
     def test_on_message(self):
         def on_message(msg):
             assert isinstance(msg, DysonPureCoolState)
-
-        userdata = Mock()
-        userdata.callback_message = [on_message]
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        device.add_message_listener(on_message)
         msg = Mock()
-        payload = b'{"msg":"CURRENT-STATE","time":' \
-                  b'"2017-02-19T15:00:18.000Z","mode-reason":"LAPP",' \
-                  b'"state-reason":"MODE","dial":"OFF","rssi":"-58",' \
-                  b'"product-state":{"fmod":"AUTO","fnst":"FAN",' \
-                  b'"fnsp":"AUTO","qtar":"0004","oson":"OFF","rhtm":"ON",' \
-                  b'"filf":"2159","ercd":"02C0","nmod":"ON","wacd":"NONE"},' \
-                  b'"scheduler":{"srsc":"cbd0","dstv":"0001","tzid":"0001"}}'
-        msg.payload = payload
-        DysonPureCoolLink.on_message(None, userdata, msg)
+        payload = open("tests/data/state.json", "r").read()
+        msg.payload = Mock()
+        msg.payload.decode.return_value = payload
+        DysonPureCoolLink.on_message(None, device, msg)
+
+    def test_on_message_hot(self):
+        def on_message(msg):
+            assert isinstance(msg, DysonPureHotCoolState)
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/"
+                                "70ZGysII1Ke1i0ZHakFH84DZuxsSQ4KTT2v"
+                                "bCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "455"
+        })
+        device.add_message_listener(on_message)
+        msg = Mock()
+        payload = open("tests/data/state_hot.json", "r").read()
+        msg.payload = Mock()
+        msg.payload.decode.return_value = payload
+        DysonPureCoolLink.on_message(None, device, msg)
 
     def test_on_message_sensor(self):
         def on_message(msg):
@@ -465,6 +410,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(mocked_publish.call_count, 2)
         device.request_current_state()
         self.assertEqual(mocked_publish.call_count, 3)
+        device.request_environmental_state()
+        self.assertEqual(mocked_publish.call_count, 4)
         device.disconnect()
 
     @mock.patch('paho.mqtt.client.Client.publish',
@@ -491,6 +438,8 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertFalse(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.request_current_state()
+        self.assertEqual(mocked_publish.call_count, 0)
+        device.request_environmental_state()
         self.assertEqual(mocked_publish.call_count, 0)
 
     @mock.patch('paho.mqtt.client.Client.publish',
@@ -831,3 +780,39 @@ class TestLibPureCoolLink(unittest.TestCase):
         self.assertEqual(invalid_target_exception.__repr__(),
                          "99 is not a valid temperature target. "
                          "It must be between 34 to 98 inclusive.")
+
+    def test_device_connected(self):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/70ZGysII1K"
+                                "e1i0ZHakFH84DZuxsSQ4KTT2vbCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        device.connected = True
+        self.assertTrue(device.connected)
+        device.connected = False
+        self.assertFalse(device.connected)
+
+    def test_environment_state(self):
+        device = DysonPureCoolLink({
+            "Active": True,
+            "Serial": "device-id-1",
+            "Name": "device-1",
+            "ScaleUnit": "SU01",
+            "Version": "21.03.08",
+            "LocalCredentials": "1/aJ5t52WvAfn+z+fjDuef86kQDQPefbQ6/70ZGysII1K"
+                                "e1i0ZHakFH84DZuxsSQ4KTT2vbCm7uYeTORULKLKQ==",
+            "AutoUpdate": True,
+            "NewVersionAvailable": False,
+            "ProductType": "475"
+        })
+        sensor_state = DysonEnvironmentalSensorState(
+            open("tests/data/sensor.json", "r").read())
+        device.environmental_state = sensor_state
+        self.assertEqual(device.environmental_state.dust, 4)
