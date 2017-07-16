@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/CharlesBlonde/libpurecoollink.svg?branch=master)](https://travis-ci.org/CharlesBlonde/libpurecoollink) [![Coverage Status](https://coveralls.io/repos/github/CharlesBlonde/libpurecoollink/badge.svg?branch=master)](https://coveralls.io/github/CharlesBlonde/libpurecoollink?branch=master)[![PyPI](https://img.shields.io/pypi/v/libpurecoollink.svg)](https://pypi.python.org/pypi/libpurecoollink) [![Documentation Status](https://readthedocs.org/projects/libpurecoollink/badge/?version=latest)](http://libpurecoollink.readthedocs.io/en/latest/?badge=latest)
 
-This Python 3.4+ library allow you to control [Dyson fan/purifier devices](http://www.dyson.com/air-treatment/purifiers/dyson-pure-hot-cool-link.aspx) devices.
+This Python 3.4+ library allow you to control [Dyson fan/purifier devices](http://www.dyson.com/air-treatment/purifiers/dyson-pure-hot-cool-link.aspx) and [Dyson 360 Eye robot vacuum device](http://www.dyson.com/vacuum-cleaners/robot/dyson-360-eye.aspx).
 
 [official documentation](http://libpurecoollink.readthedocs.io)
 
@@ -18,12 +18,13 @@ http://libpurecoollink.readthedocs.io
 
 * Dyson pure cool link devices (Tower and Desk)
 * Dyson pure cool+hot devices
+* Dyson 360 Eye robot vacuum
 
 ## Features
 
 The following feature are supported:
 
-* All devices:
+* Purifier/fan devices
     * Connect to the device using discovery or manually with IP Address
     * Turn on/off
     * Set speed
@@ -34,17 +35,23 @@ The following feature are supported:
     * Set Air Quality target (Normal, High, Better)
     * Enable/disable standby monitoring (the device continue to update sensors when in standby)
     * Reset filter life
-* Cool+Hot devices:
+* Cool+Hot purifier/fan devices
     * Set heat mode
     * Set heat target
     * Set fan focus mode
+* 360 Eye device (robot vacuum)
+    * Set power mode (Quiet/Max)
+    * Start cleaning
+    * Pause cleaning
+    * Resume cleaning
+    * Abort cleaning
 
-The following sensors are available:
+The following sensors are available for fan/purifier devices:
 
 * Humidity
 * Temperature in Kelvin
 * Dust (unknown metric)
-* Volatil organic compounds (unknown metric)
+* Air quality (unknown metric)
 
 ## Quick start
 
@@ -67,6 +74,5 @@ This [documentation](https://github.com/shadowwa/Dyson-MQTT2RRD) help me to unde
 ## Work to do
 
 * Better protocol understanding
-* Better documentation on how it is working
+* Better technical documentation on how it is working
 * Get historical data from the API (air quality, etc ...)
-* Air Purifier Heater and fan support

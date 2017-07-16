@@ -432,7 +432,7 @@ Work to do
 ----------
 
 -  Better protocol understanding
--  Better documentation on how it is working
+-  Better technical documentation on how it is working
 -  Get historical data from the API (air quality, etc ...)
 
 Releases
