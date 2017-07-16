@@ -1,7 +1,6 @@
 """Dyson Pure Cool Link library."""
 
 # pylint: disable=too-many-public-methods,too-many-instance-attributes
-# pylint: disable=useless-super-delegation
 
 import logging
 import requests
@@ -11,6 +10,7 @@ from .utils import is_360_eye_device, is_heating_device
 from .dyson_360_eye import Dyson360Eye
 from .dyson_pure_cool_link import DysonPureCoolLink
 from .dyson_pure_hotcool_link import DysonPureHotCoolLink
+from .exceptions import DysonNotLoggedException
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,11 +77,3 @@ class DysonAccount:
     def logged(self):
         """Return True if user is logged, else False."""
         return self._logged
-
-
-class DysonNotLoggedException(Exception):
-    """Not logged to Dyson Web Services Exception."""
-
-    def __init__(self):
-        """Dyson Not Logged Exception."""
-        super(DysonNotLoggedException, self).__init__()

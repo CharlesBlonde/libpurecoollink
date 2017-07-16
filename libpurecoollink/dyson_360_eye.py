@@ -96,7 +96,7 @@ class Dyson360Eye(DysonDevice):
         self._send_command(Dyson360EyeCommand.RESUME.value)
 
     def abort(self):
-        """Resume cleaning."""
+        """Abort cleaning."""
         self._send_command(Dyson360EyeCommand.ABORT.value)
 
     @staticmethod
@@ -198,7 +198,7 @@ class Dyson360EyeState:
 
     @property
     def clean_id(self):
-        """Return battery level."""
+        """Return clean id."""
         return self._clean_id
 
     def __repr__(self):

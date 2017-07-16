@@ -1,5 +1,7 @@
 """Dyson exceptions."""
 
+# pylint: disable=useless-super-delegation
+
 
 class DysonInvalidTargetTemperatureException(Exception):
     """Invalid target temperature Exception."""
@@ -35,3 +37,11 @@ class DysonInvalidTargetTemperatureException(Exception):
         if self.temperature_unit == self.FAHRENHEIT:
             return "{0} is not a valid temperature target. It must be " \
                    "between 34 to 98 inclusive.".format(self._current_value)
+
+
+class DysonNotLoggedException(Exception):
+    """Not logged to Dyson Web Services Exception."""
+
+    def __init__(self):
+        """Dyson Not Logged Exception."""
+        super(DysonNotLoggedException, self).__init__()
