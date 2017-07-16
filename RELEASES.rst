@@ -1,3 +1,11 @@
+Version 0.4.0
+~~~~~~~~~~~~~
+
+:Date:
+    2017/07/16
+
+    - Add Dyson 360 eye device support (robot vacuum)
+
 Version 0.3.0
 ~~~~~~~~~~~~~
 
