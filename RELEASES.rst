@@ -1,3 +1,12 @@
+Version 0.4.1
+~~~~~~~~~~~~~
+
+:Date:
+    2017/08/03
+
+    - Add new Dyson 360 eye states and messages
+    - Remove enum34 dependency
+
 Version 0.4.0
 ~~~~~~~~~~~~~
 

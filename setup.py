@@ -15,13 +15,15 @@ PROJECT_CLASSIFIERS = [
     'Intended Audience :: Developers',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.4',
     'Topic :: Software Development :: Libraries'
 ]
 
 setup(
     name="libpurecoollink",
-    version="0.4.0",
+    version="0.4.1",
     license="Apache License 2.0",
     url="http://libpurecoollink.readthedocs.io",
     download_url="https://github.com/CharlesBlonde/libpurecoollink",
