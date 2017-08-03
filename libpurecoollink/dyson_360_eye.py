@@ -124,6 +124,8 @@ class Dyson360Eye(DysonDevice):
             device_msg = Dyson360EyeMapGrid(payload)
         elif Dyson360EyeMapData.is_map_data(payload):
             device_msg = Dyson360EyeMapData(payload)
+        elif Dyson360Goodbye.is_goodbye_message(payload):
+            device_msg = Dyson360Goodbye(payload)
         else:
             _LOGGER.warning(payload)
 
@@ -464,3 +466,36 @@ class Dyson360EyeMapGlobal:
                   ("time", str(self.time))]
         return 'Dyson360EyeMapGlobal(' + ",".join(
             printable_fields(fields)) + ')'
+
+
+class Dyson360Goodbye:
+    """Dyson 360 Eye goodbye message."""
+
+    @staticmethod
+    def is_goodbye_message(payload):
+        """Return true if this message is a goodbye message."""
+        json_message = json.loads(payload)
+        return json_message['msg'] in ["GOODBYE"]
+
+    def __init__(self, json_body):
+        """Create a new Map Global."""
+        data = json.loads(json_body)
+        self._reason = data["reason"]
+        self._time = datetime.datetime.strptime(data["time"],
+                                                "%Y-%m-%dT%H:%M:%SZ")
+
+    @property
+    def reason(self):
+        """Return reason."""
+        return self._reason
+
+    @property
+    def time(self):
+        """Return time."""
+        return self._time
+
+    def __repr__(self):
+        """Return a String representation."""
+        fields = [("reason", str(self.reason)),
+                  ("time", str(self.time))]
+        return 'Dyson360EyeGoodbye(' + ",".join(printable_fields(fields)) + ')'

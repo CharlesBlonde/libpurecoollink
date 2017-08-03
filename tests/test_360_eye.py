@@ -6,7 +6,7 @@ import json
 
 from libpurecoollink.dyson_360_eye import Dyson360Eye, NetworkDevice, \
     Dyson360EyeState, Dyson360EyeMapGlobal, Dyson360EyeMapData, \
-    Dyson360EyeMapGrid, Dyson360EyeTelemetryData
+    Dyson360EyeMapGrid, Dyson360EyeTelemetryData, Dyson360Goodbye
 from libpurecoollink.const import PowerMode, Dyson360EyeMode
 
 
@@ -400,3 +400,25 @@ class TestDysonEye360Device(unittest.TestCase):
                          "field2=2.000000,field3=,"
                          "field4=0e000000-4a47-3845-5548-454131323334,"
                          "time=2017-07-16 07:34:34)")
+
+    def test_on_goodbye_message(self):
+        self.message = None
+
+        def callback_function(msg):
+            self.message = msg
+
+        state_message = open("tests/data/vacuum/goodbye.json", "r").read()
+        device = self._device_sample()
+        device._connected = True
+        message = Mock()
+        message.payload = Mock()
+        message.payload.decode.return_value = state_message
+        device.add_message_listener(callback_function)
+        Dyson360Eye.on_message(None, device, message)
+        self.assertTrue(isinstance(self.message, Dyson360Goodbye))
+        self.assertEqual(self.message.reason, "UNKNOWN")
+        self.assertEqual(self.message.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                         "2017-07-30T16:00:13Z")
+        self.assertEqual(self.message.__repr__(),
+                         "Dyson360EyeGoodbye(reason=UNKNOWN,"
+                         "time=2017-07-30 16:00:13)")
