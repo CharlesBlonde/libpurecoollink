@@ -22,6 +22,8 @@ MQTT_RETURN_CODES = {
     5: "Connection refused - not authorised"
 }
 
+DEFAULT_PORT = 1883
+
 
 class NetworkDevice:
     """Network device."""
@@ -103,6 +105,16 @@ class DysonDevice:
     def connection_callback(self, connected):
         """Set function called when device is connected."""
         self._connection_queue.put_nowait(connected)
+
+    @abc.abstractmethod
+    def connect(self, device_ip, device_port=DEFAULT_PORT):
+        """Connect to the device using ip address.
+
+        :param device_ip: Device IP address
+        :param device_port: Device Port (default: 1883)
+        :return: True if connected, else False
+        """
+        return
 
     @property
     @abc.abstractmethod

@@ -131,7 +131,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.sensor_data_available()
         device.connection_callback(True)
         device._add_network_device(network_device)
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertTrue(connected)
         self.assertIsNone(device.state)
         self.assertEqual(device.network_device, network_device)
@@ -158,7 +158,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
-        connected = device.connect(Mock(), "192.168.0.2")
+        connected = device.connect("192.168.0.2")
         self.assertTrue(connected)
         self.assertIsNone(device.state)
         self.assertEqual(device.network_device.name, "device-1")
@@ -189,7 +189,7 @@ class TestLibPureCoolLink(unittest.TestCase):
             "ProductType": "475"
         })
         device.connection_callback(False)
-        connected = device.connect(Mock(), "192.168.0.2")
+        connected = device.connect("192.168.0.2")
         self.assertFalse(connected)
         self.assertIsNone(device.state)
         self.assertEqual(device.network_device.name, "device-1")
@@ -214,7 +214,7 @@ class TestLibPureCoolLink(unittest.TestCase):
             "NewVersionAvailable": False,
             "ProductType": "475"
         })
-        connected = device.connect(None, retry=1, timeout=1)
+        connected = device.auto_connect(retry=1, timeout=1)
         self.assertFalse(connected)
         self.assertEqual(mocked_close_zeroconf.call_count, 1)
 
@@ -465,7 +465,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(fan_mode=FanMode.FAN,
@@ -507,7 +507,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(fan_mode=FanMode.FAN,
@@ -553,7 +553,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(fan_mode=FanMode.FAN,
@@ -596,7 +596,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(sleep_timer=10)
@@ -632,7 +632,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device.connection_callback(True)
         device.state_data_available()
         device.sensor_data_available()
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertTrue(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(sleep_timer=0)
@@ -667,7 +667,7 @@ class TestLibPureCoolLink(unittest.TestCase):
         device._current_state = DysonPureCoolState(
             open("tests/data/state.json", "r").read())
         device.connection_callback(False)
-        connected = device.connect(None)
+        connected = device.auto_connect()
         self.assertFalse(connected)
         self.assertEqual(mocked_connect.call_count, 1)
         device.set_configuration(fan_mode=FanMode.FAN,

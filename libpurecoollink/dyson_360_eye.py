@@ -7,25 +7,25 @@ import datetime
 
 import paho.mqtt.client as mqtt
 
-from .dyson_device import DysonDevice, NetworkDevice
+from .dyson_device import DysonDevice, NetworkDevice, DEFAULT_PORT
 from .utils import printable_fields
 from .const import PowerMode, Dyson360EyeMode, Dyson360EyeCommand
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_PORT = 1883
-
 
 class Dyson360Eye(DysonDevice):
     """Dyson 360 Eye device."""
 
-    def connect(self, device_ip):
+    def connect(self, device_ip, device_port=DEFAULT_PORT):
         """Try to connect to device.
 
         :param device_ip: Device IP address
+        :param device_port: Device Port (default: 1883)
+        :return: True if connected, else False
         """
         self._network_device = NetworkDevice(self._name, device_ip,
-                                             DEFAULT_PORT)
+                                             device_port)
 
         self._mqtt = mqtt.Client(userdata=self, protocol=3)
         self._mqtt.username_pw_set(self._serial, self._credentials)

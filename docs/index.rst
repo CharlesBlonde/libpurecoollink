@@ -131,7 +131,7 @@ Automatic connection (mDNS)
     devices = dyson_account.devices()
 
     # Connect using discovery to the first device
-    connected = devices[0].connect()
+    connected = devices[0].auto_connect()
 
     # connected == device available, state values are available, sensor values are available
 
@@ -155,7 +155,7 @@ Manual connection
     devices = dyson_account.devices()
 
     # Connect using discovery to the first device
-    connected = devices[0].connect(device_ip="192.168.1.2")
+    connected = devices[0].connect("192.168.1.2")
 
     # connected == device available, state values are available, sensor values are available
 

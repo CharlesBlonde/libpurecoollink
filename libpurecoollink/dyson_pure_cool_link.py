@@ -12,15 +12,13 @@ from queue import Queue, Empty
 
 import paho.mqtt.client as mqtt
 
-from .dyson_device import DysonDevice, NetworkDevice
+from .dyson_device import DysonDevice, NetworkDevice, DEFAULT_PORT
 from .utils import printable_fields, support_heating
 from .dyson_pure_state import DysonPureHotCoolState, DysonPureCoolState, \
     DysonEnvironmentalSensorState
 from .zeroconf import ServiceBrowser, Zeroconf
 
 _LOGGER = logging.getLogger(__name__)
-
-DEFAULT_PORT = 1883
 
 
 class DysonPureCoolLink(DysonDevice):
@@ -103,41 +101,47 @@ class DysonPureCoolLink(DysonDevice):
         else:
             _LOGGER.warning("Unknown message: %s", payload)
 
-    def connect(self, on_message=None, device_ip=None, timeout=5, retry=15):
-        """Try to connect to device.
+    def auto_connect(self, timeout=5, retry=15):
+        """Try to connect to device using mDNS.
 
-        If device_ip is provided, mDNS discovery step will be skipped.
-
-        :param on_message: On Message callback function
-        :param device_ip: Device IP address
         :param timeout: Timeout
         :param retry: Max retry
+        :return: True if connected, else False
         """
-        if device_ip is None:
-            for i in range(retry):
-                zeroconf = Zeroconf()
-                listener = self.DysonDeviceListener(self._serial,
-                                                    self._add_network_device)
-                ServiceBrowser(zeroconf, "_dyson_mqtt._tcp.local.", listener)
-                try:
-                    self._network_device = self._search_device_queue.get(
-                        timeout=timeout)
-                except Empty:
-                    # Unable to find device
-                    _LOGGER.warning("Unable to find device %s, try %s",
-                                    self._serial, i)
-                    zeroconf.close()
-                else:
-                    break
-            if self._network_device is None:
-                _LOGGER.error("Unable to connect to device %s", self._serial)
-                return False
-        else:
-            self._network_device = NetworkDevice(self._name, device_ip,
-                                                 DEFAULT_PORT)
+        for i in range(retry):
+            zeroconf = Zeroconf()
+            listener = self.DysonDeviceListener(self._serial,
+                                                self._add_network_device)
+            ServiceBrowser(zeroconf, "_dyson_mqtt._tcp.local.", listener)
+            try:
+                self._network_device = self._search_device_queue.get(
+                    timeout=timeout)
+            except Empty:
+                # Unable to find device
+                _LOGGER.warning("Unable to find device %s, try %s",
+                                self._serial, i)
+                zeroconf.close()
+            else:
+                break
+        if self._network_device is None:
+            _LOGGER.error("Unable to connect to device %s", self._serial)
+            return False
+        return self._mqtt_connect()
 
-        if on_message:
-            self._callback_message.append(on_message)
+    def connect(self, device_ip, device_port=DEFAULT_PORT):
+        """Connect to the device using ip address.
+
+        :param device_ip: Device IP address
+        :param device_port: Device Port (default: 1883)
+        :return: True if connected, else False
+        """
+        self._network_device = NetworkDevice(self._name, device_ip,
+                                             device_port)
+
+        return self._mqtt_connect()
+
+    def _mqtt_connect(self):
+        """Connect to the MQTT broker."""
         self._mqtt = mqtt.Client(userdata=self)
         self._mqtt.on_message = self.on_message
         self._mqtt.on_connect = self.on_connect
@@ -159,7 +163,6 @@ class DysonPureCoolLink(DysonDevice):
             self._device_available = True
         else:
             self._mqtt.loop_stop()
-
         return self._connected
 
     def sensor_data_available(self):
