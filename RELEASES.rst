@@ -2,6 +2,15 @@ Version 0.4.1
 ~~~~~~~~~~~~~
 
 :Date:
+    2017/08/05
+
+    - Add new Dyson 360 eye state
+    - Refactor connection (auto_connect() for mDNS, connect() for manual connection)
+
+Version 0.4.1
+~~~~~~~~~~~~~
+
+:Date:
     2017/08/03
 
     - Add new Dyson 360 eye states and messages
