@@ -219,7 +219,7 @@ class TestDysonEye360Device(unittest.TestCase):
         self.assertEqual(self.message.__repr__(),
                          "Dyson360EyeState("
                          "state=Dyson360EyeMode.INACTIVE_CHARGED,"
-                         "state=0d000000-4a47-3845-5548-454131323334,"
+                         "clean_id=0d000000-4a47-3845-5548-454131323334,"
                          "full_clean_type=,power_mode=PowerMode.QUIET,"
                          "battery_level=100,position=(6, 37))")
 
@@ -248,7 +248,7 @@ class TestDysonEye360Device(unittest.TestCase):
         self.assertEqual(self.message.battery_level, 100)
         self.assertEqual(self.message.__repr__(),
                          "Dyson360EyeState(state=UNKNOWN,"
-                         "state=0d000000-4a47-3845-5548-454131323334,"
+                         "clean_id=0d000000-4a47-3845-5548-454131323334,"
                          "full_clean_type=,power_mode=unknown,"
                          "battery_level=100,position=(6, 37))")
 
@@ -278,7 +278,7 @@ class TestDysonEye360Device(unittest.TestCase):
         self.assertEqual(self.message.__repr__(),
                          "Dyson360EyeState("
                          "state=Dyson360EyeMode.FULL_CLEAN_INITIATED,"
-                         "state=0e000000-4a47-3845-5548-454131323334,"
+                         "clean_id=0e000000-4a47-3845-5548-454131323334,"
                          "full_clean_type=immediate,"
                          "power_mode=PowerMode.QUIET,"
                          "battery_level=95,position=(6, 37))")

@@ -206,7 +206,7 @@ class Dyson360EyeState:
     def __repr__(self):
         """Return a String representation."""
         fields = [("state", str(self.state)),
-                  ("state", str(self.clean_id)),
+                  ("clean_id", str(self.clean_id)),
                   ("full_clean_type", str(self.full_clean_type)),
                   ("power_mode", str(self.power_mode)),
                   ("battery_level", str(self.battery_level)),
